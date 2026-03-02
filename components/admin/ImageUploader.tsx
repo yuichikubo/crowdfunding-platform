@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -23,15 +23,7 @@ export default function ImageUploader({ name, label, defaultValue, currentUrl, r
   const [dragging, setDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // currentUrl prop が外から変わったとき（例: 編集モード切替時）に内部 state を同期
-  // ※ onUrlChange は呼ばない（親 state の上書きを避けるため）
-  useEffect(() => {
-    if (currentUrl !== undefined && currentUrl !== url) {
-      setUrl(currentUrl)
-    }
-    // url を deps に入れると無限ループになるので除外
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUrl])
+
 
   const setUrlAndNotify = useCallback((newUrl: string) => {
     setUrl(newUrl)

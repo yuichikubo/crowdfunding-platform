@@ -86,18 +86,14 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
     })
   }
 
-  const handleUpdatePhoto = (id: number, currentImageUrl: string) => {
-    const urlToSave = editPhotoUrl || currentImageUrl
-    console.log("[v0] handleUpdatePhoto", { id, editPhotoUrl, currentImageUrl, urlToSave })
-    if (!urlToSave) return
+  const handleUpdatePhoto = (id: number) => {
+    if (!editPhotoUrl) return
     startTransition(async () => {
-      const res = await fetch(`/api/admin/gallery/${id}`, {
+      await fetch(`/api/admin/gallery/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image_url: urlToSave }),
+        body: JSON.stringify({ image_url: editPhotoUrl }),
       })
-      const data = await res.json()
-      console.log("[v0] PATCH response", data)
       setEditingPhotoId(null)
       setEditPhotoUrl("")
       await reload()
@@ -229,19 +225,17 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
                 <div className="p-4 space-y-3 border-b border-border">
                   <p className="text-sm font-bold text-foreground">写真を変更</p>
                   <ImageUploader
+                    key={`edit-${photo.id}`}
                     name={`photo_url_${photo.id}`}
                     label="新しい写真"
-                    currentUrl={editPhotoUrl !== "" ? editPhotoUrl : photo.image_url}
-                    onUrlChange={(url) => {
-                      console.log("[v0] onUrlChange called with:", url)
-                      setEditPhotoUrl(url)
-                    }}
+                    defaultValue={photo.image_url}
+                    onUrlChange={setEditPhotoUrl}
                   />
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      onClick={() => handleUpdatePhoto(photo.id, photo.image_url)}
-                      disabled={isPending}
+                      onClick={() => handleUpdatePhoto(photo.id)}
+                      disabled={isPending || !editPhotoUrl}
                       className="bg-ireland-green hover:bg-ireland-green/90 text-white"
                     >
                       <Check className="w-3.5 h-3.5 mr-1" />
@@ -284,7 +278,7 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
                       <ChevronDown className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setEditPhotoUrl(photo.image_url); setEditingPhotoId(photo.id) }}
+                      onClick={(e) => { e.stopPropagation(); setEditPhotoUrl(""); setEditingPhotoId(photo.id) }}
                       className="w-8 h-8 rounded-lg bg-black/50 hover:bg-ireland-green/80 text-white flex items-center justify-center transition-colors"
                       title="写真を変更"
                     >
