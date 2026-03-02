@@ -5,12 +5,14 @@ import type { Campaign } from "@/lib/db"
 import { calcProgress, calcDaysLeft, formatYen } from "@/lib/utils"
 import { Progress } from "@/components/ui/progress"
 import { Users, Clock, TrendingUp, Target } from "lucide-react"
+import { useLanguage } from "@/components/LanguageProvider"
 
 interface Props {
   campaign: Campaign
 }
 
 export default function FundingProgress({ campaign }: Props) {
+  const { t, locale } = useLanguage()
   const [current, setCurrent] = useState(campaign.current_amount)
   const [supporters, setSupporters] = useState(campaign.supporter_count)
   const [animated, setAnimated] = useState(false)
@@ -23,21 +25,13 @@ export default function FundingProgress({ campaign }: Props) {
         setCurrent(Number(data.current_amount))
         setSupporters(Number(data.supporter_count))
       }
-    } catch {
-      // Silently ignore polling errors
-    }
+    } catch {}
   }
 
   useEffect(() => {
-    // Fetch immediately on mount to get latest value
     fetchStats()
-
-    // Then poll every 5 seconds for real-time updates
     const interval = setInterval(fetchStats, 5000)
-
-    // Animate progress bar on mount
     setTimeout(() => setAnimated(true), 100)
-
     return () => clearInterval(interval)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaign.id])
@@ -46,31 +40,32 @@ export default function FundingProgress({ campaign }: Props) {
   const daysLeft = calcDaysLeft(campaign.end_date)
   const remaining = campaign.goal_amount - current
 
+  const formatCurrency = (n: number) =>
+    locale === "ja" ? formatYen(n) : `¥${n.toLocaleString()}`
+
   return (
     <div className="bg-card rounded-2xl border border-border p-6 mb-6">
-      {/* Amount display */}
       <div className="mb-4">
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="text-4xl font-black text-ireland-green tabular-nums">
-            {formatYen(current)}
+            {formatCurrency(current)}
           </span>
           <span className="text-muted-foreground text-sm">
-            目標 {formatYen(campaign.goal_amount)}
+            {t("goal")} {formatCurrency(campaign.goal_amount)}
           </span>
         </div>
         <div className="flex items-center gap-1.5 mt-1">
           <Target className="w-3.5 h-3.5 text-ireland-gold" />
           <span className="text-sm text-muted-foreground">
-            あと <span className="font-bold text-foreground">{formatYen(remaining)}</span> で達成
+            {t("remaining")} <span className="font-bold text-foreground">{formatCurrency(remaining)}</span> {t("toGoal")}
           </span>
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="mb-5">
         <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-          <span className="font-bold text-ireland-green">{progress}% 達成</span>
-          <span>{formatYen(campaign.goal_amount)}</span>
+          <span className="font-bold text-ireland-green">{progress}% {t("achievementRate")}</span>
+          <span>{formatCurrency(campaign.goal_amount)}</span>
         </div>
         <div className="h-4 bg-muted rounded-full overflow-hidden">
           <div
@@ -83,28 +78,27 @@ export default function FundingProgress({ campaign }: Props) {
         </div>
       </div>
 
-      {/* Stats grid */}
       <div className="grid grid-cols-3 gap-4">
         <div className="text-center">
           <div className="flex items-center justify-center gap-1 mb-1">
             <TrendingUp className="w-4 h-4 text-ireland-green" />
             <span className="text-2xl font-black text-foreground tabular-nums">{progress}%</span>
           </div>
-          <p className="text-xs text-muted-foreground">達成率</p>
+          <p className="text-xs text-muted-foreground">{t("achievementRate")}</p>
         </div>
         <div className="text-center border-x border-border">
           <div className="flex items-center justify-center gap-1 mb-1">
             <Users className="w-4 h-4 text-ireland-gold" />
             <span className="text-2xl font-black text-foreground tabular-nums">{supporters}</span>
           </div>
-          <p className="text-xs text-muted-foreground">支援者数</p>
+          <p className="text-xs text-muted-foreground">{t("supporters")}</p>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-1 mb-1">
             <Clock className="w-4 h-4 text-ireland-green" />
             <span className="text-2xl font-black text-foreground tabular-nums">{daysLeft}</span>
           </div>
-          <p className="text-xs text-muted-foreground">残り日数</p>
+          <p className="text-xs text-muted-foreground">{t("daysLeft")}</p>
         </div>
       </div>
     </div>

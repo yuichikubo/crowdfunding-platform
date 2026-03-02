@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Heart, ChevronDown } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useLanguage } from "@/components/LanguageProvider"
 
 interface Props {
   campaignId: number
@@ -12,11 +13,10 @@ interface Props {
 export default function StickySupport({ campaignId }: Props) {
   const [visible, setVisible] = useState(false)
   const router = useRouter()
+  const { t } = useLanguage()
 
   useEffect(() => {
-    const handleScroll = () => {
-      setVisible(window.scrollY > 400)
-    }
+    const handleScroll = () => setVisible(window.scrollY > 400)
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
@@ -28,7 +28,7 @@ export default function StickySupport({ campaignId }: Props) {
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         <div className="min-w-0">
           <p className="font-bold text-sm text-foreground truncate">Green Ireland Festival</p>
-          <p className="text-xs text-muted-foreground">あなたの支援でフェスティバルを実現！</p>
+          <p className="text-xs text-muted-foreground">{t("stickyDesc")}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button
@@ -38,7 +38,7 @@ export default function StickySupport({ campaignId }: Props) {
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
             <ChevronDown className="w-4 h-4 rotate-180 mr-1" />
-            詳細を見る
+            {t("viewDetails")}
           </Button>
           <Button
             size="sm"
@@ -46,7 +46,7 @@ export default function StickySupport({ campaignId }: Props) {
             onClick={() => router.push(`/checkout?campaign_id=${campaignId}`)}
           >
             <Heart className="w-4 h-4 mr-1.5 fill-white" />
-            支援する
+            {t("support")}
           </Button>
         </div>
       </div>

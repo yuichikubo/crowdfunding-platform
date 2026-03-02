@@ -1,8 +1,12 @@
 "use client"
 
 import { Leaf } from "lucide-react"
+import LanguageSwitcher from "@/components/LanguageSwitcher"
+import { useLanguage } from "@/components/LanguageProvider"
 
 export default function CampaignHeader() {
+  const { t } = useLanguage()
+
   return (
     <header className="bg-ireland-dark text-white py-3 px-4">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -12,8 +16,9 @@ export default function CampaignHeader() {
           </div>
           <span className="font-bold text-lg tracking-tight">Green Ireland Festival</span>
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-white/60">クラウドファンディング</span>
+        <div className="flex items-center gap-3">
+          <span className="text-white/60 text-sm hidden sm:block">{t("crowdfunding")}</span>
+          <LanguageSwitcher />
         </div>
       </div>
     </header>
