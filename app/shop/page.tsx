@@ -5,7 +5,7 @@ import { ShoppingCart, ArrowLeft, Leaf } from "lucide-react"
 import { formatYen } from "@/lib/utils"
 
 async function getProducts() {
-  return sql`SELECT * FROM products WHERE is_active = true ORDER BY sort_order, id`
+  return sql`SELECT * FROM products WHERE is_active = true ORDER BY id`
 }
 
 export default async function ShopPage() {
@@ -58,12 +58,12 @@ export default async function ShopPage() {
                       <ShoppingCart className="w-10 h-10 text-muted-foreground" />
                     </div>
                   )}
-                  {product.stock_quantity !== null && product.stock_quantity <= 5 && product.stock_quantity > 0 && (
+                  {product.stock_count !== null && product.stock_count <= 5 && product.stock_count > 0 && (
                     <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                      残り{product.stock_quantity}点
+                      残り{product.stock_count}点
                     </div>
                   )}
-                  {product.stock_quantity === 0 && (
+                  {product.stock_count === 0 && (
                     <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
                       <span className="bg-muted-foreground text-white text-sm font-bold px-4 py-1.5 rounded-full">売り切れ</span>
                     </div>
@@ -76,7 +76,7 @@ export default async function ShopPage() {
                   )}
                   <div className="flex items-center justify-between mt-3">
                     <p className="font-black text-ireland-green">{formatYen(product.price)}</p>
-                    {product.stock_quantity !== 0 && (
+                    {product.stock_count !== 0 && (
                       <Link
                         href={`/checkout?product_id=${product.id}&type=product`}
                         className="text-xs bg-ireland-green text-white font-bold px-3 py-1.5 rounded-lg hover:bg-ireland-green/90 transition-colors"
