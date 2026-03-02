@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import ImageUploader from "@/components/admin/ImageUploader"
 import type { Product } from "@/lib/db"
 import Link from "next/link"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, Save, Loader2 } from "lucide-react"
 
 interface Props {
   action: (formData: FormData) => Promise<void>
@@ -15,8 +16,21 @@ interface Props {
 }
 
 export default function ProductForm({ action, defaultValues }: Props) {
+  const formRef = useRef<HTMLFormElement>(null)
+  const [isPending, startTransition] = useTransition()
+  const [imageUrl, setImageUrl] = useState<string>(defaultValues?.image_url ?? "")
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const form = formRef.current
+    if (!form) return
+    const fd = new FormData(form)
+    fd.set("image_url", imageUrl)
+    startTransition(() => action(fd))
+  }
+
   return (
-    <form action={action} className="space-y-5">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
       <div className="bg-card rounded-2xl border border-border p-6 space-y-5">
         <div>
           <Label htmlFor="name" className="text-sm font-bold">商品名 <span className="text-destructive">*</span></Label>
@@ -26,14 +40,12 @@ export default function ProductForm({ action, defaultValues }: Props) {
           <Label htmlFor="description" className="text-sm font-bold">商品説明</Label>
           <Textarea id="description" name="description" rows={3} defaultValue={defaultValues?.description ?? ""} placeholder="商品の詳細説明..." className="mt-1.5 resize-none" />
         </div>
-
-        {/* Product image upload */}
         <ImageUploader
           name="image_url"
           label="商品画像"
           defaultValue={defaultValues?.image_url}
+          onUrlChange={setImageUrl}
         />
-
         <div>
           <Label htmlFor="category" className="text-sm font-bold">カテゴリ</Label>
           <Input id="category" name="category" defaultValue={defaultValues?.category ?? ""} placeholder="例：アパレル、グッズ、食品" className="mt-1.5" />
@@ -70,9 +82,9 @@ export default function ProductForm({ action, defaultValues }: Props) {
             戻る
           </Link>
         </Button>
-        <Button type="submit" className="bg-ireland-green hover:bg-ireland-green/90 text-white rounded-xl">
-          <Save className="w-4 h-4 mr-2" />
-          保存する
+        <Button type="submit" disabled={isPending} className="bg-ireland-green hover:bg-ireland-green/90 text-white rounded-xl">
+          {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          {isPending ? "保存中..." : "保存する"}
         </Button>
       </div>
     </form>

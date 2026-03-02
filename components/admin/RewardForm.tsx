@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import ImageUploader from "@/components/admin/ImageUploader"
 import type { Campaign, RewardTier } from "@/lib/db"
 import Link from "next/link"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, Save, Loader2 } from "lucide-react"
 
 interface Props {
   action: (formData: FormData) => Promise<void>
@@ -16,8 +17,21 @@ interface Props {
 }
 
 export default function RewardForm({ action, campaigns, defaultValues }: Props) {
+  const formRef = useRef<HTMLFormElement>(null)
+  const [isPending, startTransition] = useTransition()
+  const [imageUrl, setImageUrl] = useState<string>(defaultValues?.image_url ?? "")
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const form = formRef.current
+    if (!form) return
+    const fd = new FormData(form)
+    fd.set("image_url", imageUrl)
+    startTransition(() => action(fd))
+  }
+
   return (
-    <form action={action} className="space-y-5">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
       <div className="bg-card rounded-2xl border border-border p-6 space-y-5">
         <div>
           <Label htmlFor="campaign_id" className="text-sm font-bold">キャンペーン <span className="text-destructive">*</span></Label>
@@ -41,12 +55,11 @@ export default function RewardForm({ action, campaigns, defaultValues }: Props) 
           <Label htmlFor="description" className="text-sm font-bold">説明 <span className="text-destructive">*</span></Label>
           <Textarea id="description" name="description" required rows={4} defaultValue={defaultValues?.description} placeholder="リターン内容の詳細説明..." className="mt-1.5 resize-none" />
         </div>
-
-        {/* Reward image upload */}
         <ImageUploader
           name="image_url"
           label="リターン画像"
           defaultValue={defaultValues?.image_url}
+          onUrlChange={setImageUrl}
         />
       </div>
 
@@ -90,9 +103,9 @@ export default function RewardForm({ action, campaigns, defaultValues }: Props) 
             戻る
           </Link>
         </Button>
-        <Button type="submit" className="bg-ireland-green hover:bg-ireland-green/90 text-white rounded-xl">
-          <Save className="w-4 h-4 mr-2" />
-          保存する
+        <Button type="submit" disabled={isPending} className="bg-ireland-green hover:bg-ireland-green/90 text-white rounded-xl">
+          {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          {isPending ? "保存中..." : "保存する"}
         </Button>
       </div>
     </form>

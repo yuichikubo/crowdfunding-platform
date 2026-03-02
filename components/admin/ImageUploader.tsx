@@ -12,14 +12,20 @@ interface Props {
   label: string
   defaultValue?: string | null
   required?: boolean
+  onUrlChange?: (url: string) => void
 }
 
-export default function ImageUploader({ name, label, defaultValue, required }: Props) {
+export default function ImageUploader({ name, label, defaultValue, required, onUrlChange }: Props) {
   const [url, setUrl] = useState<string>(defaultValue ?? "")
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const setUrlAndNotify = useCallback((newUrl: string) => {
+    setUrl(newUrl)
+    onUrlChange?.(newUrl)
+  }, [onUrlChange])
 
   const upload = useCallback(async (file: File) => {
     setUploading(true)
@@ -30,13 +36,13 @@ export default function ImageUploader({ name, label, defaultValue, required }: P
       const res = await fetch("/api/admin/upload", { method: "POST", body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "アップロード失敗")
-      setUrl(data.url)
+      setUrlAndNotify(data.url)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "アップロードに失敗しました")
     } finally {
       setUploading(false)
     }
-  }, [])
+  }, [setUrlAndNotify])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -58,9 +64,13 @@ export default function ImageUploader({ name, label, defaultValue, required }: P
   const handleDragLeave = () => setDragging(false)
 
   const handleRemove = () => {
-    setUrl("")
+    setUrlAndNotify("")
     setError(null)
-    if (inputRef.current) inputRef.current.value = ""
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
+  const handleUrlInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUrlAndNotify(e.target.value)
   }
 
   return (
@@ -69,11 +79,10 @@ export default function ImageUploader({ name, label, defaultValue, required }: P
         {label} {required && <span className="text-destructive">*</span>}
       </Label>
 
-      {/* hidden input that submits the URL in the form */}
-      <input type="hidden" name={name} value={url} />
+      {/* This hidden input carries the value into the FormData on submit */}
+      <input type="hidden" name={name} value={url} readOnly />
 
       {url ? (
-        /* Preview */
         <div className="relative group rounded-xl overflow-hidden border border-border bg-muted">
           <div className="relative w-full h-48">
             <Image
@@ -90,7 +99,7 @@ export default function ImageUploader({ name, label, defaultValue, required }: P
               size="sm"
               variant="secondary"
               className="rounded-lg"
-              onClick={() => inputRef.current?.click()}
+              onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="w-4 h-4 mr-1.5" />
               変更
@@ -108,16 +117,14 @@ export default function ImageUploader({ name, label, defaultValue, required }: P
           </div>
         </div>
       ) : (
-        /* Drop zone */
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
-          onClick={() => inputRef.current?.click()}
+          onClick={() => fileInputRef.current?.click()}
           className={`
             relative flex flex-col items-center justify-center gap-3
-            w-full h-40 rounded-xl border-2 border-dashed cursor-pointer
-            transition-colors
+            w-full h-40 rounded-xl border-2 border-dashed cursor-pointer transition-colors
             ${dragging
               ? "border-ireland-green bg-ireland-green/5"
               : "border-border hover:border-ireland-green/60 hover:bg-muted/50"
@@ -135,27 +142,20 @@ export default function ImageUploader({ name, label, defaultValue, required }: P
                 <ImageIcon className="w-6 h-6 text-ireland-green" />
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-foreground">
-                  クリックまたはドラッグ＆ドロップ
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  JPEG・PNG・WebP・GIF（最大5MB）
-                </p>
+                <p className="text-sm font-medium text-foreground">クリックまたはドラッグ＆ドロップ</p>
+                <p className="text-xs text-muted-foreground mt-0.5">JPEG・PNG・WebP・GIF（最大5MB）</p>
               </div>
             </>
           )}
         </div>
       )}
 
-      {/* URL manual input */}
-      <div className="flex gap-2">
-        <Input
-          placeholder="またはURLを直接入力..."
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          className="text-xs"
-        />
-      </div>
+      <Input
+        placeholder="またはURLを直接入力..."
+        value={url}
+        onChange={handleUrlInput}
+        className="text-xs"
+      />
 
       {error && (
         <p className="text-xs text-destructive flex items-center gap-1">
@@ -163,9 +163,8 @@ export default function ImageUploader({ name, label, defaultValue, required }: P
         </p>
       )}
 
-      {/* Hidden file input */}
       <input
-        ref={inputRef}
+        ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
         className="hidden"

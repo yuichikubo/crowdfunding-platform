@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import ImageUploader from "@/components/admin/ImageUploader"
 import type { Campaign } from "@/lib/db"
 import Link from "next/link"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, Save, Loader2 } from "lucide-react"
 
 interface Props {
   action: (formData: FormData) => Promise<void>
@@ -16,15 +16,27 @@ interface Props {
 }
 
 export default function CampaignForm({ action, defaultValues }: Props) {
-  const ref = useRef<HTMLFormElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+  const [isPending, startTransition] = useTransition()
+  const [imageUrl, setImageUrl] = useState<string>(defaultValues?.hero_image_url ?? "")
 
   const toDateInput = (dateStr?: string) => {
     if (!dateStr) return ""
     return new Date(dateStr).toISOString().slice(0, 10)
   }
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const form = formRef.current
+    if (!form) return
+    const fd = new FormData(form)
+    // Ensure the latest image URL from state is included
+    fd.set("hero_image_url", imageUrl)
+    startTransition(() => action(fd))
+  }
+
   return (
-    <form ref={ref} action={action} className="space-y-5">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
       <div className="bg-card rounded-2xl border border-border p-6 space-y-5">
         <div>
           <Label htmlFor="title" className="text-sm font-bold">キャンペーンタイトル <span className="text-destructive">*</span></Label>
@@ -38,12 +50,11 @@ export default function CampaignForm({ action, defaultValues }: Props) {
           <Label htmlFor="description" className="text-sm font-bold">詳細説明</Label>
           <Textarea id="description" name="description" rows={6} defaultValue={defaultValues?.description} placeholder="プロジェクトの詳細な説明文..." className="mt-1.5 resize-none" />
         </div>
-
-        {/* Hero image upload */}
         <ImageUploader
           name="hero_image_url"
           label="ヒーロー画像"
           defaultValue={defaultValues?.hero_image_url}
+          onUrlChange={setImageUrl}
         />
       </div>
 
@@ -64,8 +75,12 @@ export default function CampaignForm({ action, defaultValues }: Props) {
         </div>
         <div>
           <Label htmlFor="status" className="text-sm font-bold">ステータス</Label>
-          <select id="status" name="status" defaultValue={defaultValues?.status ?? "draft"}
-            className="w-full mt-1.5 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring">
+          <select
+            id="status"
+            name="status"
+            defaultValue={defaultValues?.status ?? "draft"}
+            className="w-full mt-1.5 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+          >
             <option value="draft">下書き</option>
             <option value="active">実施中</option>
             <option value="completed">終了</option>
@@ -81,9 +96,9 @@ export default function CampaignForm({ action, defaultValues }: Props) {
             戻る
           </Link>
         </Button>
-        <Button type="submit" className="bg-ireland-green hover:bg-ireland-green/90 text-white rounded-xl">
-          <Save className="w-4 h-4 mr-2" />
-          保存する
+        <Button type="submit" disabled={isPending} className="bg-ireland-green hover:bg-ireland-green/90 text-white rounded-xl">
+          {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          {isPending ? "保存中..." : "保存する"}
         </Button>
       </div>
     </form>
