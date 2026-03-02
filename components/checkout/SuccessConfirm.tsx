@@ -1,6 +1,7 @@
-// Server component: confirms payment with Stripe and updates DB immediately on page load
+// Server component: confirms payment with Stripe, updates DB, returns shipping info
 import { stripe } from "@/lib/stripe"
 import sql from "@/lib/db"
+import ShippingForm from "./ShippingForm"
 
 interface Props {
   sessionId: string
@@ -8,7 +9,6 @@ interface Props {
 
 export default async function SuccessConfirm({ sessionId }: Props) {
   try {
-    // Verify payment directly with Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId)
     if (session.payment_status !== "paid") return null
 
@@ -19,49 +19,62 @@ export default async function SuccessConfirm({ sessionId }: Props) {
 
     if (!campaignId) return null
 
-    // Check if already processed (idempotency guard)
+    // Idempotency: only process once
     const existing = await sql`
-      SELECT payment_status FROM pledges
+      SELECT id, payment_status FROM pledges
       WHERE stripe_session_id = ${sessionId}
       LIMIT 1
     `
 
-    if (existing[0]?.payment_status !== "completed") {
-      // Mark pledge as completed
+    if (existing.length === 0 || existing[0].payment_status !== "completed") {
       await sql`
-        UPDATE pledges
-        SET
+        UPDATE pledges SET
           payment_status = 'completed',
           stripe_payment_intent_id = ${session.payment_intent as string | null},
           updated_at = NOW()
         WHERE stripe_session_id = ${sessionId}
           AND payment_status != 'completed'
       `
-
-      // Update campaign totals
       await sql`
-        UPDATE campaigns
-        SET
-          current_amount = current_amount + ${amount},
+        UPDATE campaigns SET
+          current_amount  = current_amount + ${amount},
           supporter_count = supporter_count + 1,
-          updated_at = NOW()
+          updated_at      = NOW()
         WHERE id = ${campaignId}
       `
-
-      // Update reward tier claimed count
       if (rewardTierId) {
         await sql`
-          UPDATE reward_tiers
-          SET claimed_count = claimed_count + 1, updated_at = NOW()
+          UPDATE reward_tiers SET
+            claimed_count = claimed_count + 1,
+            updated_at    = NOW()
           WHERE id = ${rewardTierId}
         `
       }
     }
-  } catch (err) {
-    // Silent fail — webhook will handle it as fallback
-    console.error("[SuccessConfirm] Error:", err)
-  }
 
-  // Renders nothing — purely a side-effect server component
-  return null
+    // Check if this reward requires shipping
+    if (!rewardTierId) return null
+
+    const rewardRows = await sql`
+      SELECT rt.requires_shipping, rt.title, p.id as pledge_id, p.shipping_name
+      FROM reward_tiers rt
+      JOIN pledges p ON p.stripe_session_id = ${sessionId}
+      WHERE rt.id = ${rewardTierId}
+      LIMIT 1
+    `
+    const reward = rewardRows[0] as any
+    if (!reward?.requires_shipping) return null
+
+    // Already has shipping address saved
+    if (reward.shipping_name) return null
+
+    return (
+      <div className="mb-8">
+        <ShippingForm pledgeId={reward.pledge_id} rewardTitle={reward.title} />
+      </div>
+    )
+  } catch (err) {
+    console.error("[SuccessConfirm] Error:", err)
+    return null
+  }
 }
