@@ -23,7 +23,12 @@ async function getCampaignData() {
   const supporters = await sql`
     SELECT supporter_name, amount, message, is_anonymous, created_at
     FROM pledges
-    WHERE campaign_id = ${campaign.id} AND payment_status = 'completed'
+    WHERE campaign_id = ${campaign.id}
+      AND payment_status = 'completed'
+      AND (
+        is_anonymous = false
+        OR (is_anonymous = true AND message IS NOT NULL AND message <> '')
+      )
     ORDER BY created_at DESC
     LIMIT 10
   `

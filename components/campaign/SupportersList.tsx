@@ -3,7 +3,8 @@
 import { formatYen } from "@/lib/utils"
 import { Heart } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
-import { ja, enUS, ko } from "date-fns/locale"
+import type { Locale } from "date-fns"
+import { ja, enUS, ko, zhCN } from "date-fns/locale"
 import { useLanguage } from "@/components/LanguageProvider"
 
 interface Supporter {
@@ -18,11 +19,11 @@ interface Props {
   supporters: Supporter[]
 }
 
-const dateLocales = { ja, en: enUS, ko }
+const dateLocales: Record<string, Locale> = { ja, en: enUS, ko, zh: zhCN }
 
 export default function SupportersList({ supporters }: Props) {
   const { t, locale } = useLanguage()
-  const dateLocale = dateLocales[locale]
+  const dateLocale = dateLocales[locale] ?? ja
 
   if (supporters.length === 0) {
     return (
@@ -42,12 +43,12 @@ export default function SupportersList({ supporters }: Props) {
       <div className="space-y-4">
         {supporters.map((s, i) => (
           <div key={i} className="flex gap-3">
-            <div className="w-10 h-10 rounded-full bg-ireland-green/20 flex items-center justify-center shrink-0 font-bold text-ireland-green text-sm">
-              {s.is_anonymous ? t("anonymous").charAt(0) : (s.supporter_name?.charAt(0) ?? "?")}
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${s.is_anonymous ? "bg-muted text-muted-foreground" : "bg-ireland-green/20 text-ireland-green"}`}>
+              {s.is_anonymous ? "?" : (s.supporter_name?.charAt(0) ?? "?")}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                <span className="font-bold text-sm text-foreground">
+                <span className={`font-bold text-sm ${s.is_anonymous ? "text-muted-foreground italic" : "text-foreground"}`}>
                   {s.is_anonymous ? t("anonymous") : (s.supporter_name ?? t("anonymous"))}
                 </span>
                 <span className="text-xs text-muted-foreground">
