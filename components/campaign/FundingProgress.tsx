@@ -15,25 +15,31 @@ export default function FundingProgress({ campaign }: Props) {
   const [supporters, setSupporters] = useState(campaign.supporter_count)
   const [animated, setAnimated] = useState(false)
 
-  useEffect(() => {
-    // Poll for real-time updates every 10 seconds
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/campaigns/${campaign.id}/stats`)
-        if (res.ok) {
-          const data = await res.json()
-          setCurrent(data.current_amount)
-          setSupporters(data.supporter_count)
-        }
-      } catch {
-        // Silently ignore polling errors
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`/api/campaigns/${campaign.id}/stats`, { cache: "no-store" })
+      if (res.ok) {
+        const data = await res.json()
+        setCurrent(Number(data.current_amount))
+        setSupporters(Number(data.supporter_count))
       }
-    }, 10000)
+    } catch {
+      // Silently ignore polling errors
+    }
+  }
+
+  useEffect(() => {
+    // Fetch immediately on mount to get latest value
+    fetchStats()
+
+    // Then poll every 5 seconds for real-time updates
+    const interval = setInterval(fetchStats, 5000)
 
     // Animate progress bar on mount
     setTimeout(() => setAnimated(true), 100)
 
     return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaign.id])
 
   const progress = calcProgress(current, campaign.goal_amount)

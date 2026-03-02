@@ -1,15 +1,23 @@
-import Link from "next/link"
 import { CheckCircle, Heart, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import CampaignHeader from "@/components/campaign/CampaignHeader"
+import SuccessConfirm from "@/components/checkout/SuccessConfirm"
 
-export default async function SuccessPage({ searchParams }: { searchParams: Promise<{ session_id?: string }> }) {
+export default async function SuccessPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ session_id?: string }>
+}) {
   const { session_id } = await searchParams
 
   return (
     <div className="min-h-screen bg-background">
       <CampaignHeader />
       <main className="max-w-lg mx-auto px-4 py-16 text-center">
+        {/* Trigger server-side confirm and show result */}
+        {session_id && <SuccessConfirm sessionId={session_id} />}
+
         <div className="w-20 h-20 bg-ireland-green/15 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="w-10 h-10 text-ireland-green" />
         </div>
@@ -18,7 +26,7 @@ export default async function SuccessPage({ searchParams }: { searchParams: Prom
           ご支援ありがとうございます！
         </h1>
         <p className="text-muted-foreground leading-relaxed mb-2">
-          あなたの支援でGreen Ireland Festival 2025の実現に近づきました。
+          あなたの支援でGreen Ireland Festival 2026の実現に近づきました。
         </p>
         <p className="text-sm text-muted-foreground mb-8">
           確認メールをお送りしますので、しばらくお待ちください。
@@ -34,17 +42,15 @@ export default async function SuccessPage({ searchParams }: { searchParams: Prom
           </p>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <Button
-            className="w-full bg-ireland-green hover:bg-ireland-green/90 text-white font-bold rounded-xl"
-            asChild
-          >
-            <Link href="/">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              プロジェクトに戻る
-            </Link>
-          </Button>
-        </div>
+        <Button
+          className="w-full bg-ireland-green hover:bg-ireland-green/90 text-white font-bold rounded-xl"
+          asChild
+        >
+          <Link href="/">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            プロジェクトに戻る（金額反映済み）
+          </Link>
+        </Button>
       </main>
     </div>
   )
