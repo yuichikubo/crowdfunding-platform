@@ -1,6 +1,6 @@
 import { generateText } from "ai"
 import { NextRequest, NextResponse } from "next/server"
-import { getAdminSession } from "@/lib/admin-auth"
+import { getAdminSession } from "@/lib/auth"
 
 export async function POST(req: NextRequest) {
   const admin = await getAdminSession()
