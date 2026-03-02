@@ -31,6 +31,7 @@ const navItems = [
   { href: "/admin/gallery", label: "ギャラリー管理", icon: Images },
   { href: "/admin/performers", label: "出演者管理", icon: Mic2 },
   { href: "/admin/products", label: "商品管理 (ショップ)", icon: ShoppingBag },
+  { href: "/admin/shop-orders", label: "ショップ注文管理", icon: Store },
   { href: "/admin/users", label: "管理者ユーザー", icon: Users },
 ]
 

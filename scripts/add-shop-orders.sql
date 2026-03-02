@@ -23,7 +23,3 @@ CREATE TABLE IF NOT EXISTS shop_orders (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
--- shipping_statusの修正: pledgesでwaitingを使っているがnot_requiredとの整合性を取る
-UPDATE pledges SET shipping_status = 'waiting'
-WHERE requires_shipping = TRUE AND shipping_status = 'not_required' AND shipping_name IS NOT NULL;
