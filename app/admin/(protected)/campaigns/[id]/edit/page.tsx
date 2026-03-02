@@ -19,6 +19,8 @@ export default async function EditCampaignPage({ params }: { params: Promise<{ i
     const end_date = formData.get("end_date") as string
     const status = formData.get("status") as string
     const hero_image_url = formData.get("hero_image_url") as string
+    const event_date = formData.get("event_date") as string
+    const event_venue = formData.get("event_venue") as string
 
     await sql`
       UPDATE campaigns SET
@@ -30,6 +32,8 @@ export default async function EditCampaignPage({ params }: { params: Promise<{ i
         end_date = ${end_date},
         status = ${status},
         hero_image_url = ${hero_image_url},
+        event_date = ${event_date || null},
+        event_venue = ${event_venue || null},
         updated_at = NOW()
       WHERE id = ${campaign.id}
     `

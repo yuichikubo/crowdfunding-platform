@@ -13,10 +13,12 @@ export default function NewCampaignPage() {
     const end_date = formData.get("end_date") as string
     const status = formData.get("status") as string
     const hero_image_url = formData.get("hero_image_url") as string
+    const event_date = formData.get("event_date") as string
+    const event_venue = formData.get("event_venue") as string
 
     await sql`
-      INSERT INTO campaigns (title, short_description, description, goal_amount, start_date, end_date, status, hero_image_url)
-      VALUES (${title}, ${short_description}, ${description}, ${goal_amount}, ${start_date}, ${end_date}, ${status}, ${hero_image_url})
+      INSERT INTO campaigns (title, short_description, description, goal_amount, start_date, end_date, status, hero_image_url, event_date, event_venue)
+      VALUES (${title}, ${short_description}, ${description}, ${goal_amount}, ${start_date}, ${end_date}, ${status}, ${hero_image_url}, ${event_date || null}, ${event_venue || null})
     `
     redirect("/admin/campaigns")
   }

@@ -177,9 +177,9 @@ export default function CampaignDescription({ campaign }: Props) {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
           {[
-            { label: "開催日", value: "2026年3月15日（日）" },
-            { label: "会場", value: "東京都内（詳細後日）" },
-            { label: "支援締切", value: "2026年3月18日 23:59" },
+            { label: "開催日", value: (campaign as any).event_date || "2026年3月15日（日）" },
+            { label: "会場", value: (campaign as any).event_venue || "東京（詳細は支援者にご連絡）" },
+            { label: "支援締切", value: campaign.end_date ? new Date(campaign.end_date).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" }) : "詳細後日公開" },
           ].map((item) => (
             <div key={item.label} className="p-5 text-center">
               <p className="text-xs text-muted-foreground mb-1">{item.label}</p>

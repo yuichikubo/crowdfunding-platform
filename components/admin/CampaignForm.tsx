@@ -74,6 +74,16 @@ export default function CampaignForm({ action, defaultValues }: Props) {
           </div>
         </div>
         <div>
+          <Label htmlFor="event_date" className="text-sm font-bold">イベント開催日（表示テキスト）</Label>
+          <Input id="event_date" name="event_date" defaultValue={(defaultValues as any)?.event_date ?? ""} placeholder="例：2026年3月15日（日）" className="mt-1.5" />
+          <p className="text-xs text-muted-foreground mt-1">メインページのイベント概要に表示されます</p>
+        </div>
+        <div>
+          <Label htmlFor="event_venue" className="text-sm font-bold">開催会場（表示テキスト）</Label>
+          <Input id="event_venue" name="event_venue" defaultValue={(defaultValues as any)?.event_venue ?? ""} placeholder="例：東京（詳細は支援者にご連絡）" className="mt-1.5" />
+          <p className="text-xs text-muted-foreground mt-1">メインページのイベント概要に表示されます</p>
+        </div>
+        <div>
           <Label htmlFor="status" className="text-sm font-bold">ステータス</Label>
           <select
             id="status"
