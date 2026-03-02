@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import ImageUploader from "@/components/admin/ImageUploader"
 import type { Campaign } from "@/lib/db"
 import Link from "next/link"
 import { ArrowLeft, Save } from "lucide-react"
@@ -37,10 +38,13 @@ export default function CampaignForm({ action, defaultValues }: Props) {
           <Label htmlFor="description" className="text-sm font-bold">詳細説明</Label>
           <Textarea id="description" name="description" rows={6} defaultValue={defaultValues?.description} placeholder="プロジェクトの詳細な説明文..." className="mt-1.5 resize-none" />
         </div>
-        <div>
-          <Label htmlFor="hero_image_url" className="text-sm font-bold">ヘロー画像URL</Label>
-          <Input id="hero_image_url" name="hero_image_url" defaultValue={defaultValues?.hero_image_url} placeholder="/images/hero-festival.jpg" className="mt-1.5" />
-        </div>
+
+        {/* Hero image upload */}
+        <ImageUploader
+          name="hero_image_url"
+          label="ヒーロー画像"
+          defaultValue={defaultValues?.hero_image_url}
+        />
       </div>
 
       <div className="bg-card rounded-2xl border border-border p-6 space-y-5">

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import ImageUploader from "@/components/admin/ImageUploader"
 import type { Product } from "@/lib/db"
 import Link from "next/link"
 import { ArrowLeft, Save } from "lucide-react"
@@ -25,10 +26,14 @@ export default function ProductForm({ action, defaultValues }: Props) {
           <Label htmlFor="description" className="text-sm font-bold">商品説明</Label>
           <Textarea id="description" name="description" rows={3} defaultValue={defaultValues?.description ?? ""} placeholder="商品の詳細説明..." className="mt-1.5 resize-none" />
         </div>
-        <div>
-          <Label htmlFor="image_url" className="text-sm font-bold">画像URL</Label>
-          <Input id="image_url" name="image_url" defaultValue={defaultValues?.image_url ?? ""} placeholder="/images/product.jpg" className="mt-1.5" />
-        </div>
+
+        {/* Product image upload */}
+        <ImageUploader
+          name="image_url"
+          label="商品画像"
+          defaultValue={defaultValues?.image_url}
+        />
+
         <div>
           <Label htmlFor="category" className="text-sm font-bold">カテゴリ</Label>
           <Input id="category" name="category" defaultValue={defaultValues?.category ?? ""} placeholder="例：アパレル、グッズ、食品" className="mt-1.5" />

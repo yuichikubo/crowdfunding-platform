@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import ImageUploader from "@/components/admin/ImageUploader"
 import type { Campaign, RewardTier } from "@/lib/db"
 import Link from "next/link"
 import { ArrowLeft, Save } from "lucide-react"
@@ -40,10 +41,13 @@ export default function RewardForm({ action, campaigns, defaultValues }: Props) 
           <Label htmlFor="description" className="text-sm font-bold">説明 <span className="text-destructive">*</span></Label>
           <Textarea id="description" name="description" required rows={4} defaultValue={defaultValues?.description} placeholder="リターン内容の詳細説明..." className="mt-1.5 resize-none" />
         </div>
-        <div>
-          <Label htmlFor="image_url" className="text-sm font-bold">画像URL</Label>
-          <Input id="image_url" name="image_url" defaultValue={defaultValues?.image_url ?? ""} placeholder="/images/reward-dance.jpg" className="mt-1.5" />
-        </div>
+
+        {/* Reward image upload */}
+        <ImageUploader
+          name="image_url"
+          label="リターン画像"
+          defaultValue={defaultValues?.image_url}
+        />
       </div>
 
       <div className="bg-card rounded-2xl border border-border p-6 space-y-5">
