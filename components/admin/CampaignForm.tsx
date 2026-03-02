@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import ImageUploader from "@/components/admin/ImageUploader"
 import type { Campaign } from "@/lib/db"
 import Link from "next/link"
-import { ArrowLeft, Save, Loader2 } from "lucide-react"
+import { ArrowLeft, Save, Loader2, Languages } from "lucide-react"
 
 interface Props {
   action: (formData: FormData) => Promise<void>
@@ -18,11 +18,64 @@ interface Props {
 export default function CampaignForm({ action, defaultValues }: Props) {
   const formRef = useRef<HTMLFormElement>(null)
   const [isPending, startTransition] = useTransition()
+  const [isTranslating, setIsTranslating] = useState(false)
   const [imageUrl, setImageUrl] = useState<string>(defaultValues?.hero_image_url ?? "")
+
+  const d = defaultValues as any
+
+  // Controlled state for all translatable fields
+  const [fields, setFields] = useState({
+    title: d?.title ?? "",
+    short_description: d?.short_description ?? "",
+    title_en: d?.title_en ?? "",
+    short_description_en: d?.short_description_en ?? "",
+    title_ko: d?.title_ko ?? "",
+    short_description_ko: d?.short_description_ko ?? "",
+    title_zh: d?.title_zh ?? "",
+    short_description_zh: d?.short_description_zh ?? "",
+  })
+
+  const set = (key: keyof typeof fields) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setFields((prev) => ({ ...prev, [key]: e.target.value }))
 
   const toDateInput = (dateStr?: string) => {
     if (!dateStr) return ""
     return new Date(dateStr).toISOString().slice(0, 10)
+  }
+
+  const handleAutoTranslate = async () => {
+    if (!fields.title && !fields.short_description) {
+      alert("日本語のタイトルまたは説明文を入力してください。")
+      return
+    }
+    setIsTranslating(true)
+    try {
+      const texts: Record<string, string> = {}
+      if (fields.title) texts.title = fields.title
+      if (fields.short_description) texts.short_description = fields.short_description
+
+      const res = await fetch("/api/admin/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texts }),
+      })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+
+      setFields((prev) => ({
+        ...prev,
+        title_en: data.translations.en?.title ?? prev.title_en,
+        short_description_en: data.translations.en?.short_description ?? prev.short_description_en,
+        title_ko: data.translations.ko?.title ?? prev.title_ko,
+        short_description_ko: data.translations.ko?.short_description ?? prev.short_description_ko,
+        title_zh: data.translations.zh?.title ?? prev.title_zh,
+        short_description_zh: data.translations.zh?.short_description ?? prev.short_description_zh,
+      }))
+    } catch (err) {
+      alert("翻訳に失敗しました。しばらくしてから再度お試しください。")
+    } finally {
+      setIsTranslating(false)
+    }
   }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -30,62 +83,84 @@ export default function CampaignForm({ action, defaultValues }: Props) {
     const form = formRef.current
     if (!form) return
     const fd = new FormData(form)
-    // Ensure the latest image URL from state is included
     fd.set("hero_image_url", imageUrl)
+    // Overwrite with controlled state values
+    Object.entries(fields).forEach(([k, v]) => fd.set(k, v))
     startTransition(() => action(fd))
   }
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
       <div className="bg-card rounded-2xl border border-border p-6 space-y-5">
+
         {/* 日本語 */}
         <div className="pb-5 border-b border-border space-y-4">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">日本語</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">日本語</p>
+          </div>
           <div>
             <Label htmlFor="title" className="text-sm font-bold">タイトル <span className="text-destructive">*</span></Label>
-            <Input id="title" name="title" required defaultValue={defaultValues?.title} placeholder="例：Green Ireland Festival 2026 クラウドファンディング" className="mt-1.5" />
+            <Input id="title" name="title" required value={fields.title} onChange={set("title")} placeholder="例：Green Ireland Festival 2026 クラウドファンディング" className="mt-1.5" />
           </div>
           <div>
             <Label htmlFor="short_description" className="text-sm font-bold">短い説明文 <span className="text-destructive">*</span></Label>
-            <Input id="short_description" name="short_description" required defaultValue={defaultValues?.short_description} placeholder="一覧ページやSNSで表示される短い説明" className="mt-1.5" />
+            <Input id="short_description" name="short_description" required value={fields.short_description} onChange={set("short_description")} placeholder="一覧ページやSNSで表示される短い説明" className="mt-1.5" />
           </div>
+
+          {/* 自動翻訳ボタン */}
+          <Button
+            type="button"
+            onClick={handleAutoTranslate}
+            disabled={isTranslating || (!fields.title && !fields.short_description)}
+            variant="outline"
+            className="border-ireland-green text-ireland-green hover:bg-ireland-green/10 rounded-xl font-bold"
+          >
+            {isTranslating
+              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />翻訳中...</>
+              : <><Languages className="w-4 h-4 mr-2" />EN / KO / ZH に自動翻訳</>
+            }
+          </Button>
         </div>
+
         {/* English */}
         <div className="pb-5 border-b border-border space-y-4">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">English</p>
           <div>
             <Label htmlFor="title_en" className="text-sm font-bold">Title</Label>
-            <Input id="title_en" name="title_en" defaultValue={(defaultValues as any)?.title_en ?? ""} placeholder="e.g. Green Ireland Festival 2026 Crowdfunding" className="mt-1.5" />
+            <Input id="title_en" name="title_en" value={fields.title_en} onChange={set("title_en")} placeholder="e.g. Green Ireland Festival 2026 Crowdfunding" className="mt-1.5" />
           </div>
           <div>
             <Label htmlFor="short_description_en" className="text-sm font-bold">Short Description</Label>
-            <Input id="short_description_en" name="short_description_en" defaultValue={(defaultValues as any)?.short_description_en ?? ""} placeholder="Short description for listing pages" className="mt-1.5" />
+            <Input id="short_description_en" name="short_description_en" value={fields.short_description_en} onChange={set("short_description_en")} placeholder="Short description for listing pages" className="mt-1.5" />
           </div>
         </div>
+
         {/* 한국어 */}
         <div className="pb-5 border-b border-border space-y-4">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">한국어</p>
           <div>
             <Label htmlFor="title_ko" className="text-sm font-bold">제목</Label>
-            <Input id="title_ko" name="title_ko" defaultValue={(defaultValues as any)?.title_ko ?? ""} placeholder="예: 그린 아일랜드 페스티벌 2026 크라우드펀딩" className="mt-1.5" />
+            <Input id="title_ko" name="title_ko" value={fields.title_ko} onChange={set("title_ko")} placeholder="예: 그린 아일랜드 페스티벌 2026 크라우드펀딩" className="mt-1.5" />
           </div>
           <div>
             <Label htmlFor="short_description_ko" className="text-sm font-bold">짧은 설명</Label>
-            <Input id="short_description_ko" name="short_description_ko" defaultValue={(defaultValues as any)?.short_description_ko ?? ""} placeholder="목록 페이지에 표시되는 짧은 설명" className="mt-1.5" />
+            <Input id="short_description_ko" name="short_description_ko" value={fields.short_description_ko} onChange={set("short_description_ko")} placeholder="목록 페이지에 표시되는 짧은 설명" className="mt-1.5" />
           </div>
         </div>
+
         {/* 中文 */}
         <div className="pb-5 border-b border-border space-y-4">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">中文</p>
           <div>
             <Label htmlFor="title_zh" className="text-sm font-bold">标题</Label>
-            <Input id="title_zh" name="title_zh" defaultValue={(defaultValues as any)?.title_zh ?? ""} placeholder="例: 绿色爱尔兰节 2026 众筹" className="mt-1.5" />
+            <Input id="title_zh" name="title_zh" value={fields.title_zh} onChange={set("title_zh")} placeholder="例: 绿色爱尔兰节 2026 众筹" className="mt-1.5" />
           </div>
           <div>
             <Label htmlFor="short_description_zh" className="text-sm font-bold">简短说明</Label>
-            <Input id="short_description_zh" name="short_description_zh" defaultValue={(defaultValues as any)?.short_description_zh ?? ""} placeholder="列表页面显示的简短说明" className="mt-1.5" />
+            <Input id="short_description_zh" name="short_description_zh" value={fields.short_description_zh} onChange={set("short_description_zh")} placeholder="列表页面显示的简短说明" className="mt-1.5" />
           </div>
         </div>
+
         <div>
           <Label htmlFor="description" className="text-sm font-bold">詳細説明（日本語）</Label>
           <Textarea id="description" name="description" rows={6} defaultValue={defaultValues?.description} placeholder="プロジェクトの詳細な説明文..." className="mt-1.5 resize-none" />

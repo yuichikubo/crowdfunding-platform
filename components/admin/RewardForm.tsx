@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import ImageUploader from "@/components/admin/ImageUploader"
 import type { Campaign, RewardTier } from "@/lib/db"
 import Link from "next/link"
-import { ArrowLeft, Save, Loader2 } from "lucide-react"
+import { ArrowLeft, Save, Loader2, Languages } from "lucide-react"
 
 interface Props {
   action: (formData: FormData) => Promise<void>
@@ -19,7 +19,59 @@ interface Props {
 export default function RewardForm({ action, campaigns, defaultValues }: Props) {
   const formRef = useRef<HTMLFormElement>(null)
   const [isPending, startTransition] = useTransition()
+  const [isTranslating, setIsTranslating] = useState(false)
   const [imageUrl, setImageUrl] = useState<string>(defaultValues?.image_url ?? "")
+
+  const d = defaultValues as any
+
+  const [fields, setFields] = useState({
+    title: d?.title ?? "",
+    description: d?.description ?? "",
+    title_en: d?.title_en ?? "",
+    description_en: d?.description_en ?? "",
+    title_ko: d?.title_ko ?? "",
+    description_ko: d?.description_ko ?? "",
+    title_zh: d?.title_zh ?? "",
+    description_zh: d?.description_zh ?? "",
+  })
+
+  const setInput = (key: keyof typeof fields) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setFields((prev) => ({ ...prev, [key]: e.target.value }))
+
+  const handleAutoTranslate = async () => {
+    if (!fields.title && !fields.description) {
+      alert("日本語のタイトルまたは説明文を入力してください。")
+      return
+    }
+    setIsTranslating(true)
+    try {
+      const texts: Record<string, string> = {}
+      if (fields.title) texts.title = fields.title
+      if (fields.description) texts.description = fields.description
+
+      const res = await fetch("/api/admin/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texts }),
+      })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+
+      setFields((prev) => ({
+        ...prev,
+        title_en: data.translations.en?.title ?? prev.title_en,
+        description_en: data.translations.en?.description ?? prev.description_en,
+        title_ko: data.translations.ko?.title ?? prev.title_ko,
+        description_ko: data.translations.ko?.description ?? prev.description_ko,
+        title_zh: data.translations.zh?.title ?? prev.title_zh,
+        description_zh: data.translations.zh?.description ?? prev.description_zh,
+      }))
+    } catch {
+      alert("翻訳に失敗しました。しばらくしてから再度お試しください。")
+    } finally {
+      setIsTranslating(false)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -27,6 +79,7 @@ export default function RewardForm({ action, campaigns, defaultValues }: Props) 
     if (!form) return
     const fd = new FormData(form)
     fd.set("image_url", imageUrl)
+    Object.entries(fields).forEach(([k, v]) => fd.set(k, v))
     startTransition(() => action(fd))
   }
 
@@ -47,65 +100,73 @@ export default function RewardForm({ action, campaigns, defaultValues }: Props) 
             ))}
           </select>
         </div>
+
         {/* 日本語 */}
-        <div className="pb-4 border-b border-border">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">日本語</p>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="title" className="text-sm font-bold">タイトル <span className="text-destructive">*</span></Label>
-              <Input id="title" name="title" required defaultValue={defaultValues?.title} placeholder="例：アイリッシュ盆踊りステージ参加権" className="mt-1.5" />
-            </div>
-            <div>
-              <Label htmlFor="description" className="text-sm font-bold">説明 <span className="text-destructive">*</span></Label>
-              <Textarea id="description" name="description" required rows={4} defaultValue={defaultValues?.description} placeholder="リターン内容の詳細説明..." className="mt-1.5 resize-none" />
-            </div>
+        <div className="pb-4 border-b border-border space-y-4">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">日本語</p>
+          <div>
+            <Label htmlFor="title" className="text-sm font-bold">タイトル <span className="text-destructive">*</span></Label>
+            <Input id="title" name="title" required value={fields.title} onChange={setInput("title")} placeholder="例：アイリッシュ盆踊りステージ参加権" className="mt-1.5" />
           </div>
+          <div>
+            <Label htmlFor="description" className="text-sm font-bold">説明 <span className="text-destructive">*</span></Label>
+            <Textarea id="description" name="description" required rows={4} value={fields.description} onChange={setInput("description")} placeholder="リターン内容の詳細説明..." className="mt-1.5 resize-none" />
+          </div>
+
+          {/* 自動翻訳ボタン */}
+          <Button
+            type="button"
+            onClick={handleAutoTranslate}
+            disabled={isTranslating || (!fields.title && !fields.description)}
+            variant="outline"
+            className="border-ireland-green text-ireland-green hover:bg-ireland-green/10 rounded-xl font-bold"
+          >
+            {isTranslating
+              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />翻訳中...</>
+              : <><Languages className="w-4 h-4 mr-2" />EN / KO / ZH に自動翻訳</>
+            }
+          </Button>
         </div>
 
         {/* English */}
-        <div className="pb-4 border-b border-border">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">English</p>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="title_en" className="text-sm font-bold">Title</Label>
-              <Input id="title_en" name="title_en" defaultValue={(defaultValues as any)?.title_en ?? ""} placeholder="e.g. Irish Bon Odori Stage Participation" className="mt-1.5" />
-            </div>
-            <div>
-              <Label htmlFor="description_en" className="text-sm font-bold">Description</Label>
-              <Textarea id="description_en" name="description_en" rows={4} defaultValue={(defaultValues as any)?.description_en ?? ""} placeholder="Detailed description of this reward..." className="mt-1.5 resize-none" />
-            </div>
+        <div className="pb-4 border-b border-border space-y-4">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">English</p>
+          <div>
+            <Label htmlFor="title_en" className="text-sm font-bold">Title</Label>
+            <Input id="title_en" name="title_en" value={fields.title_en} onChange={setInput("title_en")} placeholder="e.g. Irish Bon Odori Stage Participation" className="mt-1.5" />
+          </div>
+          <div>
+            <Label htmlFor="description_en" className="text-sm font-bold">Description</Label>
+            <Textarea id="description_en" name="description_en" rows={4} value={fields.description_en} onChange={setInput("description_en")} placeholder="Detailed description of this reward..." className="mt-1.5 resize-none" />
           </div>
         </div>
 
         {/* 한국어 */}
-        <div className="pb-4 border-b border-border">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">한국어</p>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="title_ko" className="text-sm font-bold">제목</Label>
-              <Input id="title_ko" name="title_ko" defaultValue={(defaultValues as any)?.title_ko ?? ""} placeholder="예: 아이리시 봉오도리 스테이지 참가권" className="mt-1.5" />
-            </div>
-            <div>
-              <Label htmlFor="description_ko" className="text-sm font-bold">설명</Label>
-              <Textarea id="description_ko" name="description_ko" rows={4} defaultValue={(defaultValues as any)?.description_ko ?? ""} placeholder="리턴 내용 상세 설명..." className="mt-1.5 resize-none" />
-            </div>
+        <div className="pb-4 border-b border-border space-y-4">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">한국어</p>
+          <div>
+            <Label htmlFor="title_ko" className="text-sm font-bold">제목</Label>
+            <Input id="title_ko" name="title_ko" value={fields.title_ko} onChange={setInput("title_ko")} placeholder="예: 아이리시 봉오도리 스테이지 참가권" className="mt-1.5" />
+          </div>
+          <div>
+            <Label htmlFor="description_ko" className="text-sm font-bold">설명</Label>
+            <Textarea id="description_ko" name="description_ko" rows={4} value={fields.description_ko} onChange={setInput("description_ko")} placeholder="리턴 내용 상세 설명..." className="mt-1.5 resize-none" />
           </div>
         </div>
 
         {/* 中文 */}
-        <div>
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">中文</p>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="title_zh" className="text-sm font-bold">标题</Label>
-              <Input id="title_zh" name="title_zh" defaultValue={(defaultValues as any)?.title_zh ?? ""} placeholder="例: 爱尔兰盆踊舞台参与权" className="mt-1.5" />
-            </div>
-            <div>
-              <Label htmlFor="description_zh" className="text-sm font-bold">说明</Label>
-              <Textarea id="description_zh" name="description_zh" rows={4} defaultValue={(defaultValues as any)?.description_zh ?? ""} placeholder="回报内容详细说明..." className="mt-1.5 resize-none" />
-            </div>
+        <div className="space-y-4">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">中文</p>
+          <div>
+            <Label htmlFor="title_zh" className="text-sm font-bold">标题</Label>
+            <Input id="title_zh" name="title_zh" value={fields.title_zh} onChange={setInput("title_zh")} placeholder="例: 爱尔兰盆踊舞台参与权" className="mt-1.5" />
+          </div>
+          <div>
+            <Label htmlFor="description_zh" className="text-sm font-bold">说明</Label>
+            <Textarea id="description_zh" name="description_zh" rows={4} value={fields.description_zh} onChange={setInput("description_zh")} placeholder="回报内容详细说明..." className="mt-1.5 resize-none" />
           </div>
         </div>
+
         <ImageUploader
           name="image_url"
           label="リターン画像"
