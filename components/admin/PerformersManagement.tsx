@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import Image from "next/image"
-import { Plus, Trash2, Pencil, Eye, EyeOff, X, Check } from "lucide-react"
+import { Plus, Trash2, Pencil, Eye, EyeOff, X, Check, ChevronUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -50,6 +50,22 @@ export default function PerformersManagement({ campaignId, initialPerformers }: 
       setForm(emptyForm)
       setAddMode(false)
       await reload()
+    })
+  }
+
+  const movePerformer = (index: number, direction: "up" | "down") => {
+    const newList = [...performers]
+    const targetIndex = direction === "up" ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= newList.length) return
+    ;[newList[index], newList[targetIndex]] = [newList[targetIndex], newList[index]]
+    const reordered = newList.map((p, i) => ({ ...p, sort_order: i }))
+    setPerformers(reordered)
+    startTransition(async () => {
+      await fetch("/api/admin/performers", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reordered.map(({ id, sort_order }) => ({ id, sort_order }))),
+      })
     })
   }
 
@@ -139,7 +155,7 @@ export default function PerformersManagement({ campaignId, initialPerformers }: 
         </div>
       ) : (
         <div className="space-y-4">
-          {performers.map((p) => (
+          {performers.map((p, index) => (
             <div key={p.id} className={`bg-card border rounded-2xl overflow-hidden ${!p.is_active ? "opacity-50 border-border" : "border-border"}`}>
               {editingId === p.id ? (
                 <div className="p-6 space-y-4">
@@ -173,6 +189,25 @@ export default function PerformersManagement({ campaignId, initialPerformers }: 
                 </div>
               ) : (
                 <div className="flex gap-4 p-4">
+                  {/* 並び替えボタン */}
+                  <div className="flex flex-col gap-1 justify-center shrink-0">
+                    <button
+                      onClick={() => movePerformer(index, "up")}
+                      disabled={index === 0 || isPending}
+                      className="w-7 h-7 rounded-lg border border-border hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="上へ"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => movePerformer(index, "down")}
+                      disabled={index === performers.length - 1 || isPending}
+                      className="w-7 h-7 rounded-lg border border-border hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="下へ"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 bg-muted">
                     {p.image_url ? (
                       <Image src={p.image_url} alt={p.name} fill className="object-cover" />
