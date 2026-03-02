@@ -88,13 +88,16 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
 
   const handleUpdatePhoto = (id: number, currentImageUrl: string) => {
     const urlToSave = editPhotoUrl || currentImageUrl
+    console.log("[v0] handleUpdatePhoto", { id, editPhotoUrl, currentImageUrl, urlToSave })
     if (!urlToSave) return
     startTransition(async () => {
-      await fetch(`/api/admin/gallery/${id}`, {
+      const res = await fetch(`/api/admin/gallery/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_url: urlToSave }),
       })
+      const data = await res.json()
+      console.log("[v0] PATCH response", data)
       setEditingPhotoId(null)
       setEditPhotoUrl("")
       await reload()
@@ -229,7 +232,10 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
                     name={`photo_url_${photo.id}`}
                     label="新しい写真"
                     currentUrl={editPhotoUrl !== "" ? editPhotoUrl : photo.image_url}
-                    onUrlChange={setEditPhotoUrl}
+                    onUrlChange={(url) => {
+                      console.log("[v0] onUrlChange called with:", url)
+                      setEditPhotoUrl(url)
+                    }}
                   />
                   <div className="flex gap-2">
                     <Button
