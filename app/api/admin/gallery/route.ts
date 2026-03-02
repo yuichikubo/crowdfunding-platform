@@ -21,3 +21,16 @@ export async function POST(request: NextRequest) {
   `
   return NextResponse.json({ success: true })
 }
+
+// 一括 sort_order 更新: body = [{ id, sort_order }, ...]
+export async function PUT(request: NextRequest) {
+  const admin = await getAdminSession()
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const items: { id: number; sort_order: number }[] = await request.json()
+  await Promise.all(
+    items.map(({ id, sort_order }) =>
+      sql`UPDATE gallery_photos SET sort_order = ${sort_order} WHERE id = ${id}`
+    )
+  )
+  return NextResponse.json({ success: true })
+}

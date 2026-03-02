@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useRef } from "react"
 import Image from "next/image"
-import { Plus, Trash2, Eye, EyeOff, Pencil, Check, X, ImageIcon } from "lucide-react"
+import { Plus, Trash2, Eye, EyeOff, Pencil, Check, X, ImageIcon, GripVertical, ChevronUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,6 +31,9 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
   const [editCaption, setEditCaption] = useState("")
   const [editingPhotoId, setEditingPhotoId] = useState<number | null>(null)
   const [editPhotoUrl, setEditPhotoUrl] = useState("")
+  const [draggingId, setDraggingId] = useState<number | null>(null)
+  const [dragOverId, setDragOverId] = useState<number | null>(null)
+  const dragItem = useRef<number | null>(null)
 
   const reload = async () => {
     const res = await fetch(`/api/admin/gallery?campaign_id=${campaignId}`)
@@ -97,12 +100,63 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
     })
   }
 
+  const saveSortOrder = (ordered: GalleryPhoto[]) => {
+    const items = ordered.map((p, i) => ({ id: p.id, sort_order: i }))
+    fetch("/api/admin/gallery", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(items),
+    })
+  }
+
+  const movePhoto = (index: number, direction: -1 | 1) => {
+    const next = [...photos]
+    const target = index + direction
+    if (target < 0 || target >= next.length) return
+    ;[next[index], next[target]] = [next[target], next[index]]
+    setPhotos(next)
+    saveSortOrder(next)
+  }
+
+  // HTML5 drag handlers
+  const onDragStart = (id: number) => {
+    dragItem.current = id
+    setDraggingId(id)
+  }
+
+  const onDragOver = (e: React.DragEvent, id: number) => {
+    e.preventDefault()
+    setDragOverId(id)
+  }
+
+  const onDrop = (targetId: number) => {
+    const fromId = dragItem.current
+    if (fromId == null || fromId === targetId) return
+    const next = [...photos]
+    const fromIdx = next.findIndex((p) => p.id === fromId)
+    const toIdx = next.findIndex((p) => p.id === targetId)
+    const [removed] = next.splice(fromIdx, 1)
+    next.splice(toIdx, 0, removed)
+    setPhotos(next)
+    saveSortOrder(next)
+    setDraggingId(null)
+    setDragOverId(null)
+    dragItem.current = null
+  }
+
+  const onDragEnd = () => {
+    setDraggingId(null)
+    setDragOverId(null)
+    dragItem.current = null
+  }
+
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-black text-foreground">フォトギャラリー管理</h1>
           <p className="text-sm text-muted-foreground mt-1">メインページのギャラリーに表示される写真を管理します</p>
+          <p className="text-xs text-muted-foreground mt-0.5">ドラッグまたは ↑↓ ボタンで順番を変更できます</p>
         </div>
         <Button onClick={() => setAddMode(true)} disabled={addMode} className="bg-ireland-green hover:bg-ireland-green/90">
           <Plus className="w-4 h-4 mr-2" />
@@ -152,8 +206,20 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {photos.map((photo) => (
-            <div key={photo.id} className={`bg-card border rounded-2xl overflow-hidden ${!photo.is_active ? "opacity-60" : "border-border"}`}>
+          {photos.map((photo, index) => (
+            <div
+              key={photo.id}
+              draggable
+              onDragStart={() => onDragStart(photo.id)}
+              onDragOver={(e) => onDragOver(e, photo.id)}
+              onDrop={() => onDrop(photo.id)}
+              onDragEnd={onDragEnd}
+              className={`bg-card border rounded-2xl overflow-hidden transition-all cursor-grab active:cursor-grabbing
+                ${!photo.is_active ? "opacity-60" : "border-border"}
+                ${draggingId === photo.id ? "opacity-40 scale-95 ring-2 ring-ireland-green/50" : ""}
+                ${dragOverId === photo.id && draggingId !== photo.id ? "ring-2 ring-ireland-green border-ireland-green" : ""}
+              `}
+            >
               {/* 写真部分 */}
               {editingPhotoId === photo.id ? (
                 <div className="p-4 space-y-3 border-b border-border">
@@ -188,23 +254,44 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
                 <div className="relative w-full h-44">
                   <Image src={photo.image_url} alt={photo.caption} fill className="object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  {/* ドラッグハンドル (左上) */}
+                  <div className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/50 text-white flex items-center justify-center cursor-grab active:cursor-grabbing">
+                    <GripVertical className="w-4 h-4" />
+                  </div>
+                  {/* 順番操作 + 各種ボタン (右上) */}
                   <div className="absolute top-2 right-2 flex gap-1">
                     <button
-                      onClick={() => { setEditingPhotoId(photo.id); setEditPhotoUrl("") }}
+                      onClick={(e) => { e.stopPropagation(); movePhoto(index, -1) }}
+                      disabled={index === 0}
+                      className="w-8 h-8 rounded-lg bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="上に移動"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); movePhoto(index, 1) }}
+                      disabled={index === photos.length - 1}
+                      className="w-8 h-8 rounded-lg bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="下に移動"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingPhotoId(photo.id); setEditPhotoUrl("") }}
                       className="w-8 h-8 rounded-lg bg-black/50 hover:bg-ireland-green/80 text-white flex items-center justify-center transition-colors"
                       title="写真を変更"
                     >
                       <ImageIcon className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleToggle(photo.id, photo.is_active)}
+                      onClick={(e) => { e.stopPropagation(); handleToggle(photo.id, photo.is_active) }}
                       className="w-8 h-8 rounded-lg bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
                       title={photo.is_active ? "非表示にする" : "表示する"}
                     >
                       {photo.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </button>
                     <button
-                      onClick={() => handleDelete(photo.id)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(photo.id) }}
                       className="w-8 h-8 rounded-lg bg-black/50 hover:bg-red-500/70 text-white flex items-center justify-center transition-colors"
                       title="削除"
                     >
