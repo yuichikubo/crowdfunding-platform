@@ -26,6 +26,8 @@ export default async function EditRewardPage({ params }: { params: Promise<{ id:
     const description_en = formData.get("description_en") as string
     const title_ko = formData.get("title_ko") as string
     const description_ko = formData.get("description_ko") as string
+    const title_zh = formData.get("title_zh") as string
+    const description_zh = formData.get("description_zh") as string
 
     await sql`
       UPDATE reward_tiers SET
@@ -41,7 +43,9 @@ export default async function EditRewardPage({ params }: { params: Promise<{ id:
         title_en = ${title_en || null},
         description_en = ${description_en || null},
         title_ko = ${title_ko || null},
-        description_ko = ${description_ko || null}
+        description_ko = ${description_ko || null},
+        title_zh = ${title_zh || null},
+        description_zh = ${description_zh || null}
       WHERE id = ${reward.id}
     `
     redirect("/admin/rewards")

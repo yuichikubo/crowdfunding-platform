@@ -15,10 +15,16 @@ export default function NewCampaignPage() {
     const hero_image_url = formData.get("hero_image_url") as string
     const event_date = formData.get("event_date") as string
     const event_venue = formData.get("event_venue") as string
+    const title_en = formData.get("title_en") as string
+    const short_description_en = formData.get("short_description_en") as string
+    const title_ko = formData.get("title_ko") as string
+    const short_description_ko = formData.get("short_description_ko") as string
+    const title_zh = formData.get("title_zh") as string
+    const short_description_zh = formData.get("short_description_zh") as string
 
     await sql`
-      INSERT INTO campaigns (title, short_description, description, goal_amount, start_date, end_date, status, hero_image_url, event_date, event_venue)
-      VALUES (${title}, ${short_description}, ${description}, ${goal_amount}, ${start_date}, ${end_date}, ${status}, ${hero_image_url}, ${event_date || null}, ${event_venue || null})
+      INSERT INTO campaigns (title, short_description, description, goal_amount, start_date, end_date, status, hero_image_url, event_date, event_venue, title_en, short_description_en, title_ko, short_description_ko, title_zh, short_description_zh)
+      VALUES (${title}, ${short_description}, ${description}, ${goal_amount}, ${start_date}, ${end_date}, ${status}, ${hero_image_url}, ${event_date || null}, ${event_venue || null}, ${title_en || null}, ${short_description_en || null}, ${title_ko || null}, ${short_description_ko || null}, ${title_zh || null}, ${short_description_zh || null})
     `
     redirect("/admin/campaigns")
   }

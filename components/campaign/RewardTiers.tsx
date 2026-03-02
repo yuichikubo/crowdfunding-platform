@@ -49,8 +49,8 @@ function getTierStyle(amount: number, t: (k: any) => string) {
 }
 
 function getLocalizedReward(reward: any, lang: Language) {
-  const titleKey = lang === "en" ? "title_en" : lang === "ko" ? "title_ko" : null
-  const descKey = lang === "en" ? "description_en" : lang === "ko" ? "description_ko" : null
+  const titleKey = lang === "en" ? "title_en" : lang === "ko" ? "title_ko" : lang === "zh" ? "title_zh" : null
+  const descKey = lang === "en" ? "description_en" : lang === "ko" ? "description_ko" : lang === "zh" ? "description_zh" : null
   return {
     title: (titleKey && reward[titleKey]) ? reward[titleKey] : reward.title,
     description: (descKey && reward[descKey]) ? reward[descKey] : reward.description,

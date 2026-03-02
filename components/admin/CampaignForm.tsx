@@ -38,16 +38,56 @@ export default function CampaignForm({ action, defaultValues }: Props) {
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
       <div className="bg-card rounded-2xl border border-border p-6 space-y-5">
-        <div>
-          <Label htmlFor="title" className="text-sm font-bold">キャンペーンタイトル <span className="text-destructive">*</span></Label>
-          <Input id="title" name="title" required defaultValue={defaultValues?.title} placeholder="例：Green Ireland Festival 2026 クラウドファンディング" className="mt-1.5" />
+        {/* 日本語 */}
+        <div className="pb-5 border-b border-border space-y-4">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">日本語</p>
+          <div>
+            <Label htmlFor="title" className="text-sm font-bold">タイトル <span className="text-destructive">*</span></Label>
+            <Input id="title" name="title" required defaultValue={defaultValues?.title} placeholder="例：Green Ireland Festival 2026 クラウドファンディング" className="mt-1.5" />
+          </div>
+          <div>
+            <Label htmlFor="short_description" className="text-sm font-bold">短い説明文 <span className="text-destructive">*</span></Label>
+            <Input id="short_description" name="short_description" required defaultValue={defaultValues?.short_description} placeholder="一覧ページやSNSで表示される短い説明" className="mt-1.5" />
+          </div>
+        </div>
+        {/* English */}
+        <div className="pb-5 border-b border-border space-y-4">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">English</p>
+          <div>
+            <Label htmlFor="title_en" className="text-sm font-bold">Title</Label>
+            <Input id="title_en" name="title_en" defaultValue={(defaultValues as any)?.title_en ?? ""} placeholder="e.g. Green Ireland Festival 2026 Crowdfunding" className="mt-1.5" />
+          </div>
+          <div>
+            <Label htmlFor="short_description_en" className="text-sm font-bold">Short Description</Label>
+            <Input id="short_description_en" name="short_description_en" defaultValue={(defaultValues as any)?.short_description_en ?? ""} placeholder="Short description for listing pages" className="mt-1.5" />
+          </div>
+        </div>
+        {/* 한국어 */}
+        <div className="pb-5 border-b border-border space-y-4">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">한국어</p>
+          <div>
+            <Label htmlFor="title_ko" className="text-sm font-bold">제목</Label>
+            <Input id="title_ko" name="title_ko" defaultValue={(defaultValues as any)?.title_ko ?? ""} placeholder="예: 그린 아일랜드 페스티벌 2026 크라우드펀딩" className="mt-1.5" />
+          </div>
+          <div>
+            <Label htmlFor="short_description_ko" className="text-sm font-bold">짧은 설명</Label>
+            <Input id="short_description_ko" name="short_description_ko" defaultValue={(defaultValues as any)?.short_description_ko ?? ""} placeholder="목록 페이지에 표시되는 짧은 설명" className="mt-1.5" />
+          </div>
+        </div>
+        {/* 中文 */}
+        <div className="pb-5 border-b border-border space-y-4">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">中文</p>
+          <div>
+            <Label htmlFor="title_zh" className="text-sm font-bold">标题</Label>
+            <Input id="title_zh" name="title_zh" defaultValue={(defaultValues as any)?.title_zh ?? ""} placeholder="例: 绿色爱尔兰节 2026 众筹" className="mt-1.5" />
+          </div>
+          <div>
+            <Label htmlFor="short_description_zh" className="text-sm font-bold">简短说明</Label>
+            <Input id="short_description_zh" name="short_description_zh" defaultValue={(defaultValues as any)?.short_description_zh ?? ""} placeholder="列表页面显示的简短说明" className="mt-1.5" />
+          </div>
         </div>
         <div>
-          <Label htmlFor="short_description" className="text-sm font-bold">短い説明文 <span className="text-destructive">*</span></Label>
-          <Input id="short_description" name="short_description" required defaultValue={defaultValues?.short_description} placeholder="一覧ページやSNSで表示される短い説明" className="mt-1.5" />
-        </div>
-        <div>
-          <Label htmlFor="description" className="text-sm font-bold">詳細説明</Label>
+          <Label htmlFor="description" className="text-sm font-bold">詳細説明（日本語）</Label>
           <Textarea id="description" name="description" rows={6} defaultValue={defaultValues?.description} placeholder="プロジェクトの詳細な説明文..." className="mt-1.5 resize-none" />
         </div>
         <ImageUploader

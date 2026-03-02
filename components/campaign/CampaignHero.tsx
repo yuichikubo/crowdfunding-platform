@@ -11,14 +11,27 @@ interface Props {
 }
 
 export default function CampaignHero({ campaign }: Props) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
+
+  const c = campaign as any
+  const title =
+    lang === "en" && c.title_en ? c.title_en :
+    lang === "ko" && c.title_ko ? c.title_ko :
+    lang === "zh" && c.title_zh ? c.title_zh :
+    campaign.title
+
+  const shortDesc =
+    lang === "en" && c.short_description_en ? c.short_description_en :
+    lang === "ko" && c.short_description_ko ? c.short_description_ko :
+    lang === "zh" && c.short_description_zh ? c.short_description_zh :
+    campaign.short_description
 
   return (
     <section className="relative">
       <div className="relative w-full h-72 md:h-96 lg:h-[500px] overflow-hidden">
         <Image
           src={campaign.hero_image_url || "/images/hero-irish-bon-odori.jpg"}
-          alt={campaign.title}
+          alt={title}
           fill
           className="object-cover"
           priority
@@ -35,19 +48,19 @@ export default function CampaignHero({ campaign }: Props) {
               </Badge>
             </div>
             <h1 className="text-xl md:text-3xl lg:text-4xl font-black text-white text-balance leading-tight mb-3">
-              {campaign.title}
+              {title}
             </h1>
             <p className="text-white/90 text-sm md:text-base leading-relaxed max-w-2xl text-pretty">
-              {campaign.short_description}
+              {shortDesc}
             </p>
             <div className="flex flex-wrap gap-4 mt-4">
               <div className="flex items-center gap-1.5 text-white/80 text-sm">
                 <Calendar className="w-4 h-4 text-ireland-gold shrink-0" />
-                <span>{(campaign as any).event_date || "2026年3月15日（日）"}</span>
+                <span>{c.event_date || "2026年3月15日（日）"}</span>
               </div>
               <div className="flex items-center gap-1.5 text-white/80 text-sm">
                 <MapPin className="w-4 h-4 text-ireland-gold shrink-0" />
-                <span>{(campaign as any).event_venue || "東京（詳細は支援者にご連絡）"}</span>
+                <span>{c.event_venue || "東京（詳細は支援者にご連絡）"}</span>
               </div>
             </div>
           </div>

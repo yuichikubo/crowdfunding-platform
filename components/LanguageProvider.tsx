@@ -20,10 +20,11 @@ const LanguageContext = createContext<LanguageContextType>({
 function detectLocale(): Locale {
   if (typeof window === "undefined") return "ja"
   const saved = localStorage.getItem("locale") as Locale | null
-  if (saved && ["ja", "en", "ko"].includes(saved)) return saved
+  if (saved && ["ja", "en", "ko", "zh"].includes(saved)) return saved
   const lang = navigator.language.toLowerCase()
   if (lang.startsWith("ko")) return "ko"
   if (lang.startsWith("ja")) return "ja"
+  if (lang.startsWith("zh")) return "zh"
   return "en"
 }
 

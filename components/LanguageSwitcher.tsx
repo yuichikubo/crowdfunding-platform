@@ -7,6 +7,7 @@ const LANGS: { code: Locale; label: string; flag: string }[] = [
   { code: "ja", label: "日本語", flag: "JP" },
   { code: "en", label: "English", flag: "EN" },
   { code: "ko", label: "한국어", flag: "KO" },
+  { code: "zh", label: "中文", flag: "ZH" },
 ]
 
 export default function LanguageSwitcher() {

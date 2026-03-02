@@ -78,7 +78,7 @@ export default function RewardForm({ action, campaigns, defaultValues }: Props) 
         </div>
 
         {/* 한국어 */}
-        <div>
+        <div className="pb-4 border-b border-border">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">한국어</p>
           <div className="space-y-4">
             <div>
@@ -88,6 +88,21 @@ export default function RewardForm({ action, campaigns, defaultValues }: Props) 
             <div>
               <Label htmlFor="description_ko" className="text-sm font-bold">설명</Label>
               <Textarea id="description_ko" name="description_ko" rows={4} defaultValue={(defaultValues as any)?.description_ko ?? ""} placeholder="리턴 내용 상세 설명..." className="mt-1.5 resize-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* 中文 */}
+        <div>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">中文</p>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="title_zh" className="text-sm font-bold">标题</Label>
+              <Input id="title_zh" name="title_zh" defaultValue={(defaultValues as any)?.title_zh ?? ""} placeholder="例: 爱尔兰盆踊舞台参与权" className="mt-1.5" />
+            </div>
+            <div>
+              <Label htmlFor="description_zh" className="text-sm font-bold">说明</Label>
+              <Textarea id="description_zh" name="description_zh" rows={4} defaultValue={(defaultValues as any)?.description_zh ?? ""} placeholder="回报内容详细说明..." className="mt-1.5 resize-none" />
             </div>
           </div>
         </div>
