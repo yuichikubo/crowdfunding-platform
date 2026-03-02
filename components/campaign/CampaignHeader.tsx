@@ -13,7 +13,6 @@ export default function CampaignHeader() {
           <span className="font-bold text-lg tracking-tight">Green Ireland Festival</span>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          <span className="text-ireland-gold font-medium">2025</span>
           <span className="text-white/60">クラウドファンディング</span>
         </div>
       </div>

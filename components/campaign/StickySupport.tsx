@@ -27,7 +27,7 @@ export default function StickySupport({ campaignId }: Props) {
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-border shadow-2xl py-3 px-4">
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <p className="font-bold text-sm text-foreground truncate">Green Ireland Festival 2025</p>
+          <p className="font-bold text-sm text-foreground truncate">Green Ireland Festival</p>
           <p className="text-xs text-muted-foreground">あなたの支援でフェスティバルを実現！</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
