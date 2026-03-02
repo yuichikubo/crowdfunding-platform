@@ -78,7 +78,7 @@ export default async function ShopPage() {
                     <p className="font-black text-ireland-green">{formatYen(product.price)}</p>
                     {product.stock_count !== 0 && (
                       <Link
-                        href={`/checkout?product_id=${product.id}&type=product`}
+                        href={`/shop/checkout?product_id=${product.id}`}
                         className="text-xs bg-ireland-green text-white font-bold px-3 py-1.5 rounded-lg hover:bg-ireland-green/90 transition-colors"
                       >
                         購入する
