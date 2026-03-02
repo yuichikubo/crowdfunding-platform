@@ -1,31 +1,22 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Noto_Sans_JP } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const notoSansJP = Noto_Sans_JP({
+  subsets: ["latin"],
+  weight: ["400", "500", "700", "900"],
+  display: "swap",
+})
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+  title: 'Green Ireland Festival 2025 - クラウドファンディング',
+  description: 'アイルランドの文化・音楽・食を日本に届けるフェスティバルを一緒に作りましょう！Green Ireland Festival 2025のクラウドファンディングプロジェクト。',
+  keywords: ['グリーンアイルランドフェスティバル', 'クラウドファンディング', 'アイルランド', 'フェスティバル', '東京'],
+  openGraph: {
+    title: 'Green Ireland Festival 2025',
+    description: 'アイルランドの文化・音楽・食を日本に届けるフェスティバル',
+    type: 'website',
   },
 }
 
@@ -35,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className="font-sans antialiased">
+    <html lang="ja">
+      <body className={`${notoSansJP.className} font-sans antialiased bg-background text-foreground`}>
         {children}
         <Analytics />
       </body>

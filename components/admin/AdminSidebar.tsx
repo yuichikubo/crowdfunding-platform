@@ -1,0 +1,117 @@
+"use client"
+
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import type { AdminUser } from "@/lib/db"
+import {
+  LayoutDashboard,
+  Megaphone,
+  Gift,
+  ShoppingBag,
+  Users,
+  LogOut,
+  Leaf,
+  ExternalLink,
+  CreditCard,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+
+interface Props {
+  admin: AdminUser
+}
+
+const navItems = [
+  { href: "/admin", label: "ダッシュボード", icon: LayoutDashboard, exact: true },
+  { href: "/admin/campaigns", label: "クラファン管理", icon: Megaphone },
+  { href: "/admin/rewards", label: "リターン管理", icon: Gift },
+  { href: "/admin/pledges", label: "支援者管理", icon: CreditCard },
+  { href: "/admin/products", label: "商品管理", icon: ShoppingBag },
+  { href: "/admin/users", label: "管理者ユーザー", icon: Users },
+]
+
+export default function AdminSidebar({ admin }: Props) {
+  const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await fetch("/api/admin/logout", { method: "POST" })
+    router.push("/admin/login")
+    router.refresh()
+  }
+
+  const isActive = (item: typeof navItems[0]) => {
+    if (item.exact) return pathname === item.href
+    return pathname.startsWith(item.href)
+  }
+
+  return (
+    <aside className="w-64 shrink-0 bg-sidebar border-r border-sidebar-border flex flex-col min-h-screen">
+      {/* Logo */}
+      <div className="p-5 border-b border-sidebar-border">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-ireland-gold rounded-xl flex items-center justify-center">
+            <Leaf className="w-5 h-5 text-ireland-dark" />
+          </div>
+          <div>
+            <p className="font-black text-sidebar-foreground text-sm">Green Ireland</p>
+            <p className="text-sidebar-foreground/50 text-xs">管理画面</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 p-3 space-y-1">
+        {navItems.map((item) => {
+          const Icon = item.icon
+          const active = isActive(item)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                active
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              )}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              {item.label}
+            </Link>
+          )
+        })}
+
+        <div className="pt-3 border-t border-sidebar-border mt-3">
+          <Link
+            href="/"
+            target="_blank"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          >
+            <ExternalLink className="w-4 h-4 shrink-0" />
+            公開ページを見る
+          </Link>
+        </div>
+      </nav>
+
+      {/* User info + logout */}
+      <div className="p-3 border-t border-sidebar-border">
+        <div className="flex items-center gap-3 px-3 py-2 mb-1">
+          <div className="w-8 h-8 bg-ireland-gold/30 rounded-full flex items-center justify-center text-ireland-gold font-bold text-sm">
+            {admin.name.charAt(0)}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sidebar-foreground text-sm font-medium truncate">{admin.name}</p>
+            <p className="text-sidebar-foreground/50 text-xs truncate">{admin.email}</p>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground/70 hover:bg-red-500/20 hover:text-red-400 transition-colors w-full"
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          ログアウト
+        </button>
+      </div>
+    </aside>
+  )
+}
