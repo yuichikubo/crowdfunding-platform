@@ -13,7 +13,7 @@ async function getCampaignData() {
     SELECT * FROM campaigns WHERE status = 'active' ORDER BY id LIMIT 1
   `
   const campaign = campaigns[0]
-  if (!campaign) return { campaign: null, rewards: [], supporters: [] }
+  if (!campaign) return { campaign: null, rewards: [], supporters: [], gallery: [], performers: [] }
 
   const rewards = await sql<RewardTier[]>`
     SELECT * FROM reward_tiers
@@ -27,11 +27,21 @@ async function getCampaignData() {
     ORDER BY created_at DESC
     LIMIT 10
   `
-  return { campaign, rewards, supporters }
+  const gallery = await sql`
+    SELECT * FROM gallery_photos
+    WHERE campaign_id = ${campaign.id} AND is_active = true
+    ORDER BY sort_order
+  `
+  const performers = await sql`
+    SELECT * FROM performers
+    WHERE campaign_id = ${campaign.id} AND is_active = true
+    ORDER BY sort_order
+  `
+  return { campaign, rewards, supporters, gallery, performers }
 }
 
 export default async function Page() {
-  const { campaign, rewards, supporters } = await getCampaignData()
+  const { campaign, rewards, supporters, gallery, performers } = await getCampaignData()
 
   if (!campaign) {
     return (
@@ -51,7 +61,7 @@ export default async function Page() {
             {/* Left / Main content */}
             <div className="flex-1 min-w-0">
               <FundingProgress campaign={campaign} />
-              <CampaignDescription campaign={campaign} />
+              <CampaignDescription campaign={campaign} gallery={gallery as any} performers={performers as any} />
               <SupportersList supporters={supporters} />
             </div>
             {/* Right sidebar - rewards */}

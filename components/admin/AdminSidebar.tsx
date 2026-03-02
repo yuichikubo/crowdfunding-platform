@@ -13,6 +13,9 @@ import {
   Leaf,
   ExternalLink,
   CreditCard,
+  Images,
+  Mic2,
+  Store,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -25,7 +28,9 @@ const navItems = [
   { href: "/admin/campaigns", label: "クラファン管理", icon: Megaphone },
   { href: "/admin/rewards", label: "リターン管理", icon: Gift },
   { href: "/admin/pledges", label: "支援者管理", icon: CreditCard },
-  { href: "/admin/products", label: "商品管理", icon: ShoppingBag },
+  { href: "/admin/gallery", label: "ギャラリー管理", icon: Images },
+  { href: "/admin/performers", label: "出演者管理", icon: Mic2 },
+  { href: "/admin/products", label: "商品管理 (ショップ)", icon: ShoppingBag },
   { href: "/admin/users", label: "管理者ユーザー", icon: Users },
 ]
 
@@ -81,7 +86,7 @@ export default function AdminSidebar({ admin }: Props) {
           )
         })}
 
-        <div className="pt-3 border-t border-sidebar-border mt-3">
+        <div className="pt-3 border-t border-sidebar-border mt-3 space-y-1">
           <Link
             href="/"
             target="_blank"
@@ -89,6 +94,14 @@ export default function AdminSidebar({ admin }: Props) {
           >
             <ExternalLink className="w-4 h-4 shrink-0" />
             公開ページを見る
+          </Link>
+          <Link
+            href="/shop"
+            target="_blank"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          >
+            <Store className="w-4 h-4 shrink-0" />
+            ショップを見る
           </Link>
         </div>
       </nav>
