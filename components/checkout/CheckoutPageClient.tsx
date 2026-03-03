@@ -68,6 +68,8 @@ export default function CheckoutPageClient(props: Props) {
                 alt={rewardTitle ?? campaignTitle}
                 fill
                 className="object-cover"
+                priority
+                loading="eager"
               />
             </div>
             <p className="font-bold text-foreground text-sm mb-1">{campaignTitle}</p>
