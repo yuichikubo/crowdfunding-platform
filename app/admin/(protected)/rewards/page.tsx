@@ -3,7 +3,8 @@ import { formatYen } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Plus, Edit, Gift, Users } from "lucide-react"
+import { Plus, Edit, Gift, Users, Copy } from "lucide-react"
+import RewardDuplicateButton from "@/components/admin/RewardDuplicateButton"
 
 export default async function RewardsPage() {
   const rewards = await sql`
@@ -43,11 +44,14 @@ export default async function RewardsPage() {
                   <h3 className="font-bold text-foreground">{reward.title}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">{reward.campaign_title}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="rounded-xl" asChild>
-                  <Link href={`/admin/rewards/${reward.id}/edit`}>
-                    <Edit className="w-4 h-4" />
-                  </Link>
-                </Button>
+                <div className="flex items-center gap-1">
+                  <RewardDuplicateButton id={reward.id} />
+                  <Button variant="ghost" size="icon" className="rounded-xl" asChild>
+                    <Link href={`/admin/rewards/${reward.id}/edit`}>
+                      <Edit className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
 
               <p className="text-2xl font-black text-ireland-green mb-3">{formatYen(reward.amount)}</p>
