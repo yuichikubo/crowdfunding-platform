@@ -16,6 +16,8 @@ import {
   Images,
   Mic2,
   Store,
+  Settings,
+  Mail,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -33,6 +35,8 @@ const navItems = [
   { href: "/admin/products", label: "商品管理 (ショップ)", icon: ShoppingBag },
   { href: "/admin/shop-orders", label: "ショップ注文管理", icon: Store },
   { href: "/admin/users", label: "管理者ユーザー", icon: Users },
+  { href: "/admin/email-templates", label: "メール配信設定", icon: Mail },
+  { href: "/admin/settings", label: "共通設定", icon: Settings },
 ]
 
 export default function AdminSidebar({ admin }: Props) {
