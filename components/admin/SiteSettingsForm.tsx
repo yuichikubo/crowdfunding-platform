@@ -22,16 +22,19 @@ export default function SiteSettingsForm({ initial }: Props) {
   const [subtitle, setSubtitle] = useState(initial.site_subtitle ?? "")
   const [logoUrl, setLogoUrl] = useState(initial.logo_url ?? "")
 
-  // Stripe
-  const [stripeKey, setStripeKey] = useState("")
-  const [showStripeKey, setShowStripeKey] = useState(false)
+  // Stripe — 設定済みなら masked 値を初期表示
+  const MASKED = "••••••••••••••••"
   const stripeKeySaved = !!initial.stripe_secret_key
+  const [stripeKey, setStripeKey] = useState(stripeKeySaved ? MASKED : "")
+  const [showStripeKey, setShowStripeKey] = useState(false)
+  const [stripeKeyEditing, setStripeKeyEditing] = useState(false)
 
   // Gmail
-  const [gmailUser, setGmailUser] = useState(initial.gmail_user ?? "")
-  const [gmailPass, setGmailPass] = useState("")
-  const [showGmailPass, setShowGmailPass] = useState(false)
   const gmailPassSaved = !!initial.gmail_app_password
+  const [gmailUser, setGmailUser] = useState(initial.gmail_user ?? "")
+  const [gmailPass, setGmailPass] = useState(gmailPassSaved ? MASKED : "")
+  const [showGmailPass, setShowGmailPass] = useState(false)
+  const [gmailPassEditing, setGmailPassEditing] = useState(false)
 
   const handleSave = () => {
     startTransition(async () => {
@@ -41,9 +44,9 @@ export default function SiteSettingsForm({ initial }: Props) {
         logo_url: logoUrl,
         gmail_user: gmailUser,
       }
-      // 空欄の場合は上書きしない（既存値を保持）
-      if (stripeKey) payload.stripe_secret_key = stripeKey
-      if (gmailPass) payload.gmail_app_password = gmailPass
+      // masked 値・空欄の場合は上書きしない（既存値を保持）
+      if (stripeKey && stripeKey !== MASKED) payload.stripe_secret_key = stripeKey
+      if (gmailPass && gmailPass !== MASKED) payload.gmail_app_password = gmailPass
 
       await fetch("/api/admin/site-settings", {
         method: "POST",
@@ -51,9 +54,9 @@ export default function SiteSettingsForm({ initial }: Props) {
         body: JSON.stringify(payload),
       })
       setSaved(true)
-      // 入力欄をクリア（保存済み状態に）
-      if (stripeKey) setStripeKey("")
-      if (gmailPass) setGmailPass("")
+      // 保存後は masked 表示に戻す
+      if (stripeKey && stripeKey !== MASKED) { setStripeKey(MASKED); setStripeKeyEditing(false) }
+      if (gmailPass && gmailPass !== MASKED) { setGmailPass(MASKED); setGmailPassEditing(false) }
       setTimeout(() => setSaved(false), 3000)
     })
   }
@@ -117,20 +120,32 @@ export default function SiteSettingsForm({ initial }: Props) {
           <h2 className="font-bold text-foreground">Stripe 決済設定</h2>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="stripe_secret_key">
-            Stripe シークレットキー
-            {stripeKeySaved && !stripeKey && (
-              <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="stripe_secret_key">
+              Stripe シークレットキー
+              {stripeKeySaved && (
+                <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>
+              )}
+            </Label>
+            {stripeKeySaved && !stripeKeyEditing && (
+              <button
+                type="button"
+                onClick={() => { setStripeKey(""); setStripeKeyEditing(true) }}
+                className="text-xs text-ireland-green underline underline-offset-2"
+              >
+                変更する
+              </button>
             )}
-          </Label>
+          </div>
           <div className="relative">
             <Input
               id="stripe_secret_key"
               type={showStripeKey ? "text" : "password"}
               value={stripeKey}
               onChange={(e) => setStripeKey(e.target.value)}
-              placeholder={stripeKeySaved ? "変更する場合のみ入力" : "sk_live_xxxxxxxxxxxx"}
-              className="pr-10 font-mono text-sm"
+              readOnly={stripeKeySaved && !stripeKeyEditing}
+              placeholder="sk_live_xxxxxxxxxxxx"
+              className={`pr-10 font-mono text-sm ${stripeKeySaved && !stripeKeyEditing ? "bg-muted cursor-default select-none" : ""}`}
             />
             <button
               type="button"
@@ -168,20 +183,32 @@ export default function SiteSettingsForm({ initial }: Props) {
           <p className="text-xs text-muted-foreground">送信に使用する Gmail アドレスを入力してください</p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="gmail_app_password">
-            Gmail アプリパスワード（GMAIL_APP_PASSWORD）
-            {gmailPassSaved && !gmailPass && (
-              <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="gmail_app_password">
+              Gmail アプリパスワード
+              {gmailPassSaved && (
+                <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>
+              )}
+            </Label>
+            {gmailPassSaved && !gmailPassEditing && (
+              <button
+                type="button"
+                onClick={() => { setGmailPass(""); setGmailPassEditing(true) }}
+                className="text-xs text-ireland-green underline underline-offset-2"
+              >
+                変更する
+              </button>
             )}
-          </Label>
+          </div>
           <div className="relative">
             <Input
               id="gmail_app_password"
               type={showGmailPass ? "text" : "password"}
               value={gmailPass}
               onChange={(e) => setGmailPass(e.target.value)}
-              placeholder={gmailPassSaved ? "変更する場合のみ入力" : "xxxx xxxx xxxx xxxx"}
-              className="pr-10 font-mono text-sm"
+              readOnly={gmailPassSaved && !gmailPassEditing}
+              placeholder="xxxx xxxx xxxx xxxx"
+              className={`pr-10 font-mono text-sm ${gmailPassSaved && !gmailPassEditing ? "bg-muted cursor-default select-none" : ""}`}
             />
             <button
               type="button"
