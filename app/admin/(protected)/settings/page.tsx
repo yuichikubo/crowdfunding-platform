@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation"
+import { getAdminSession } from "@/lib/auth"
 import sql from "@/lib/db"
 import SiteSettingsForm from "@/components/admin/SiteSettingsForm"
 import { Settings } from "lucide-react"
@@ -5,6 +7,9 @@ import { Settings } from "lucide-react"
 export const metadata = { title: "共通設定 - 管理画面" }
 
 export default async function SiteSettingsPage() {
+  const admin = await getAdminSession()
+  if (!admin || admin.role !== "super_admin") redirect("/admin")
+
   const rows = await sql`SELECT key, value FROM site_settings`
   const settings: Record<string, string> = {}
   for (const row of rows) settings[row.key] = row.value

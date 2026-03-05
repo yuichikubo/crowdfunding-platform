@@ -1,7 +1,7 @@
 import sql from "@/lib/db"
-import { Download, CreditCard } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { CreditCard } from "lucide-react"
 import PledgesManagement from "@/components/admin/PledgesManagement"
+import PledgesExportButton from "@/components/admin/PledgesExportButton"
 
 export default async function PledgesPage() {
   const pledges = await sql`
@@ -34,10 +34,7 @@ export default async function PledgesPage() {
           <h1 className="text-2xl font-black text-foreground">支援者管理</h1>
           <p className="text-muted-foreground mt-1">支援の確認・ステータス変更・発送管理</p>
         </div>
-        <Button variant="outline" className="rounded-xl">
-          <Download className="w-4 h-4 mr-2" />
-          CSVエクスポート
-        </Button>
+        <PledgesExportButton />
       </div>
 
       <PledgesManagement pledges={pledges as any} stats={stats} />

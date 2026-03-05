@@ -36,12 +36,13 @@ const navItems = [
   { href: "/admin/shop-orders", label: "ショップ注文管理", icon: Store },
   { href: "/admin/users", label: "管理者ユーザー", icon: Users },
   { href: "/admin/email-templates", label: "メール配信設定", icon: Mail },
-  { href: "/admin/settings", label: "共通設定", icon: Settings },
+  { href: "/admin/settings", label: "共通設定", icon: Settings, superAdminOnly: true },
 ]
 
 export default function AdminSidebar({ admin }: Props) {
   const pathname = usePathname()
   const router = useRouter()
+  const isSuperAdmin = admin.role === "super_admin"
 
   const handleLogout = async () => {
     await fetch("/api/admin/logout", { method: "POST" })
@@ -71,7 +72,7 @@ export default function AdminSidebar({ admin }: Props) {
 
       {/* Nav */}
       <nav className="flex-1 p-3 space-y-1">
-        {navItems.map((item) => {
+        {navItems.filter(item => !item.superAdminOnly || isSuperAdmin).map((item) => {
           const Icon = item.icon
           const active = isActive(item)
           return (
