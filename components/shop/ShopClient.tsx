@@ -14,6 +14,8 @@ interface Product {
   price: number
   image_url: string | null
   stock_count: number | null
+  name_en?: string; name_ko?: string; name_zh?: string
+  description_en?: string; description_ko?: string; description_zh?: string
 }
 
 interface Props {
@@ -21,7 +23,12 @@ interface Props {
 }
 
 export default function ShopClient({ products }: Props) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
+
+  const localize = (p: Product) => ({
+    name: (lang !== "ja" && (p as any)[`name_${lang}`]) || p.name,
+    description: (lang !== "ja" && (p as any)[`description_${lang}`]) || p.description,
+  })
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,11 +67,13 @@ export default function ShopClient({ products }: Props) {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {products.map((product) => (
+            {products.map((product) => {
+              const lp = localize(product)
+              return (
               <div key={product.id} className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group">
                 <div className="relative w-full aspect-square bg-muted">
                   {product.image_url ? (
-                    <Image src={product.image_url} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <Image src={product.image_url} alt={lp.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <ShoppingCart className="w-10 h-10 text-muted-foreground" />
@@ -82,9 +91,9 @@ export default function ShopClient({ products }: Props) {
                   )}
                 </div>
                 <div className="p-3">
-                  <p className="font-bold text-sm text-foreground line-clamp-2 leading-tight">{product.name}</p>
-                  {product.description && (
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{product.description}</p>
+                  <p className="font-bold text-sm text-foreground line-clamp-2 leading-tight">{lp.name}</p>
+                  {lp.description && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{lp.description}</p>
                   )}
                   <div className="flex items-center justify-between mt-3">
                     <div>
@@ -102,7 +111,8 @@ export default function ShopClient({ products }: Props) {
                   </div>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </main>

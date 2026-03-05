@@ -14,6 +14,8 @@ interface Product {
   price: number
   description?: string
   image_url?: string
+  name_en?: string; name_ko?: string; name_zh?: string
+  description_en?: string; description_ko?: string; description_zh?: string
 }
 
 type Props =
@@ -21,7 +23,7 @@ type Props =
   | { type: "checkout"; product: Product }
 
 export default function ShopCheckoutPageClient(props: Props) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   if (props.type === "no_product") {
     return (
@@ -37,6 +39,8 @@ export default function ShopCheckoutPageClient(props: Props) {
   }
 
   const { product } = props
+  const productName = (lang !== "ja" && (product as any)[`name_${lang}`]) || product.name
+  const productDesc = (lang !== "ja" && (product as any)[`description_${lang}`]) || product.description
 
   return (
     <div className="min-h-screen bg-background">
@@ -69,14 +73,14 @@ export default function ShopCheckoutPageClient(props: Props) {
               <h2 className="font-bold text-foreground mb-4 text-sm">{t("shopOrderSummary")}</h2>
               <div className="relative h-40 w-full rounded-xl overflow-hidden mb-4 bg-muted">
                 {product.image_url ? (
-                  <Image src={product.image_url} alt={product.name} fill className="object-cover" />
+                  <Image src={product.image_url} alt={productName} fill className="object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">{t("noImageText")}</div>
                 )}
               </div>
-              <p className="font-bold text-foreground text-sm mb-1">{product.name}</p>
-              {product.description && (
-                <p className="text-xs text-muted-foreground mb-3 line-clamp-3">{product.description}</p>
+              <p className="font-bold text-foreground text-sm mb-1">{productName}</p>
+              {productDesc && (
+                <p className="text-xs text-muted-foreground mb-3 line-clamp-3">{productDesc}</p>
               )}
               <div className="border-t border-border pt-3">
                 <div className="flex justify-between text-sm">
