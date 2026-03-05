@@ -9,17 +9,22 @@ function renderTemplate(body: string, vars: Record<string, string>): string {
 }
 
 async function getGmailCredentials(): Promise<{ user: string; pass: string } | null> {
-  // 環境変数 → DBの順でフォールバック
+  // DB優先 → 環境変数フォールバック（共通設定の値を確実に使う）
+  try {
+    const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('gmail_user', 'gmail_app_password')`
+    const map: Record<string, string> = {}
+    for (const row of rows) map[row.key] = row.value
+    if (map.gmail_user && map.gmail_app_password) {
+      return { user: map.gmail_user, pass: map.gmail_app_password }
+    }
+  } catch {
+    // DB失敗時は環境変数にフォールバック
+  }
+
   const envUser = process.env.GMAIL_USER
   const envPass = process.env.GMAIL_APP_PASSWORD
   if (envUser && envPass) return { user: envUser, pass: envPass }
 
-  const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('gmail_user', 'gmail_app_password')`
-  const map: Record<string, string> = {}
-  for (const row of rows) map[row.key] = row.value
-  if (map.gmail_user && map.gmail_app_password) {
-    return { user: map.gmail_user, pass: map.gmail_app_password }
-  }
   return null
 }
 
