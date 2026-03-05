@@ -109,19 +109,26 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
     const file = e.target.files?.[0]
     if (!file) return
     const url = await uploadPhotoFile(file)
+    console.log("[v0] uploaded URL:", url)
     if (url) setEditPhotoUrl(url)
     // reset file input so same file can be re-selected
     e.target.value = ""
   }
 
   const handleUpdatePhoto = (id: number) => {
-    if (!editPhotoUrl) return
+    console.log("[v0] handleUpdatePhoto called. id:", id, "editPhotoUrl:", editPhotoUrl)
+    if (!editPhotoUrl) {
+      console.log("[v0] editPhotoUrl is empty — aborting")
+      return
+    }
     startTransition(async () => {
-      await fetch(`/api/admin/gallery/${id}`, {
+      const res = await fetch(`/api/admin/gallery/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_url: editPhotoUrl }),
       })
+      const json = await res.json()
+      console.log("[v0] PATCH result:", res.status, json)
       setEditingPhotoId(null)
       setEditPhotoUrl("")
       await reload()
