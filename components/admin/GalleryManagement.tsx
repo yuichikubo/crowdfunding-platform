@@ -1,12 +1,15 @@
 "use client"
 
-import { useState, useTransition, useRef } from "react"
+import { useState, useTransition, useRef, useCallback } from "react"
 import Image from "next/image"
-import { Plus, Trash2, Eye, EyeOff, Pencil, Check, X, ImageIcon, GripVertical, ChevronUp, ChevronDown, Upload, Loader2 } from "lucide-react"
+import {
+  Plus, Trash2, Eye, EyeOff, ImageIcon,
+  GripVertical, ChevronUp, ChevronDown,
+  Upload, Loader2, Check, X, Pencil,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import ImageUploader from "@/components/admin/ImageUploader"
 
 interface GalleryPhoto {
   id: number
@@ -21,18 +24,112 @@ interface Props {
   initialPhotos: GalleryPhoto[]
 }
 
+// ---- 独立した写真アップロードフック ----
+function usePhotoUpload() {
+  const [uploading, setUploading] = useState(false)
+  const [url, setUrl] = useState("")
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const reset = () => { setUrl(""); if (fileRef.current) fileRef.current.value = "" }
+
+  const handleFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd })
+      const data = await res.json()
+      if (!res.ok) { alert(data.error ?? "アップロード失敗"); return }
+      setUrl(data.url)
+    } catch {
+      alert("アップロードに失敗しました")
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ""
+    }
+  }, [])
+
+  return { url, setUrl, uploading, fileRef, handleFile, reset }
+}
+
+// ---- 写真選択UI（追加・変更で共用） ----
+function PhotoPicker({
+  url,
+  setUrl,
+  uploading,
+  fileRef,
+  handleFile,
+  placeholder = "https://...",
+}: {
+  url: string
+  setUrl: (v: string) => void
+  uploading: boolean
+  fileRef: React.RefObject<HTMLInputElement | null>
+  handleFile: (e: React.ChangeEvent<HTMLInputElement>) => void
+  placeholder?: string
+}) {
+  return (
+    <div className="space-y-3">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={handleFile}
+      />
+      {url && (
+        <div className="relative w-full h-40 rounded-xl overflow-hidden border border-border bg-muted">
+          <Image src={url} alt="プレビュー" fill className="object-cover" unoptimized />
+        </div>
+      )}
+      {uploading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          アップロード中...
+        </div>
+      )}
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        className="w-full"
+      >
+        <Upload className="w-4 h-4 mr-2" />
+        {url ? "別の画像を選択" : "画像ファイルを選択"}
+      </Button>
+      <Input
+        placeholder={placeholder}
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        className="text-xs"
+      />
+    </div>
+  )
+}
+
+// ---- メインコンポーネント ----
 export default function GalleryManagement({ campaignId, initialPhotos }: Props) {
   const [photos, setPhotos] = useState<GalleryPhoto[]>(initialPhotos)
   const [isPending, startTransition] = useTransition()
+
+  // 追加フォーム
   const [addMode, setAddMode] = useState(false)
-  const [newImageUrl, setNewImageUrl] = useState("")
   const [newCaption, setNewCaption] = useState("")
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const addPicker = usePhotoUpload()
+
+  // キャプション編集
+  const [editingCaptionId, setEditingCaptionId] = useState<number | null>(null)
   const [editCaption, setEditCaption] = useState("")
+
+  // 写真変更モード
   const [editingPhotoId, setEditingPhotoId] = useState<number | null>(null)
-  const [editPhotoUrl, setEditPhotoUrl] = useState("")
-  const [uploadingPhoto, setUploadingPhoto] = useState(false)
-  const photoFileRef = useRef<HTMLInputElement>(null)
+  const editPicker = usePhotoUpload()
+
+  // ドラッグ
   const [draggingId, setDraggingId] = useState<number | null>(null)
   const [dragOverId, setDragOverId] = useState<number | null>(null)
   const dragItem = useRef<number | null>(null)
@@ -42,21 +139,28 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
     if (res.ok) setPhotos(await res.json())
   }
 
+  // --- 追加 ---
   const handleAdd = () => {
-    if (!newImageUrl) return
+    if (!addPicker.url) { alert("画像を選択してください"); return }
     startTransition(async () => {
       await fetch("/api/admin/gallery", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaign_id: campaignId, image_url: newImageUrl, caption: newCaption, sort_order: photos.length }),
+        body: JSON.stringify({
+          campaign_id: campaignId,
+          image_url: addPicker.url,
+          caption: newCaption,
+          sort_order: photos.length,
+        }),
       })
-      setNewImageUrl("")
+      addPicker.reset()
       setNewCaption("")
       setAddMode(false)
       await reload()
     })
   }
 
+  // --- 削除 ---
   const handleDelete = (id: number) => {
     if (!confirm("この写真を削除しますか？")) return
     startTransition(async () => {
@@ -65,6 +169,7 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
     })
   }
 
+  // --- 表示切替 ---
   const handleToggle = (id: number, current: boolean) => {
     startTransition(async () => {
       await fetch(`/api/admin/gallery/${id}`, {
@@ -76,6 +181,7 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
     })
   }
 
+  // --- キャプション更新 ---
   const handleEditCaption = (id: number) => {
     startTransition(async () => {
       await fetch(`/api/admin/gallery/${id}`, {
@@ -83,79 +189,46 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ caption: editCaption }),
       })
-      setEditingId(null)
+      setEditingCaptionId(null)
       await reload()
     })
   }
 
-  const uploadPhotoFile = async (file: File): Promise<string | null> => {
-    setUploadingPhoto(true)
-    try {
-      const fd = new FormData()
-      fd.append("file", file)
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd })
-      const data = await res.json()
-      if (!res.ok) { alert(data.error ?? "アップロード失敗"); return null }
-      return data.url as string
-    } catch {
-      alert("アップロードに失敗しました")
-      return null
-    } finally {
-      setUploadingPhoto(false)
-    }
-  }
-
-  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const url = await uploadPhotoFile(file)
-    if (url) setEditPhotoUrl(url)
-    e.target.value = ""
-  }
-
+  // --- 写真URL更新 ---
   const handleUpdatePhoto = (id: number) => {
-    if (!editPhotoUrl) return
+    if (!editPicker.url) { alert("新しい画像を選択してください"); return }
     startTransition(async () => {
       await fetch(`/api/admin/gallery/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image_url: editPhotoUrl }),
+        body: JSON.stringify({ image_url: editPicker.url }),
       })
+      editPicker.reset()
       setEditingPhotoId(null)
-      setEditPhotoUrl("")
       await reload()
     })
   }
 
+  // --- 並び替え ---
   const saveSortOrder = (ordered: GalleryPhoto[]) => {
-    const items = ordered.map((p, i) => ({ id: p.id, sort_order: i }))
     fetch("/api/admin/gallery", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(items),
+      body: JSON.stringify(ordered.map((p, i) => ({ id: p.id, sort_order: i }))),
     })
   }
 
-  const movePhoto = (index: number, direction: -1 | 1) => {
+  const movePhoto = (index: number, dir: -1 | 1) => {
     const next = [...photos]
-    const target = index + direction
+    const target = index + dir
     if (target < 0 || target >= next.length) return
     ;[next[index], next[target]] = [next[target], next[index]]
     setPhotos(next)
     saveSortOrder(next)
   }
 
-  // HTML5 drag handlers
-  const onDragStart = (id: number) => {
-    dragItem.current = id
-    setDraggingId(id)
-  }
-
-  const onDragOver = (e: React.DragEvent, id: number) => {
-    e.preventDefault()
-    setDragOverId(id)
-  }
-
+  const onDragStart = (id: number) => { dragItem.current = id; setDraggingId(id) }
+  const onDragOver = (e: React.DragEvent, id: number) => { e.preventDefault(); setDragOverId(id) }
   const onDrop = (targetId: number) => {
     const fromId = dragItem.current
     if (fromId == null || fromId === targetId) return
@@ -166,27 +239,12 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
     next.splice(toIdx, 0, removed)
     setPhotos(next)
     saveSortOrder(next)
-    setDraggingId(null)
-    setDragOverId(null)
-    dragItem.current = null
+    setDraggingId(null); setDragOverId(null); dragItem.current = null
   }
-
-  const onDragEnd = () => {
-    setDraggingId(null)
-    setDragOverId(null)
-    dragItem.current = null
-  }
+  const onDragEnd = () => { setDraggingId(null); setDragOverId(null); dragItem.current = null }
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      {/* 共通ファイル入力 — 写真変更モード用 (1つのみ) */}
-      <input
-        ref={photoFileRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-        className="hidden"
-        onChange={handlePhotoFileChange}
-      />
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-black text-foreground">フォトギャラリー管理</h1>
@@ -205,12 +263,7 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
           <h2 className="font-bold text-foreground">新しい写真を追加</h2>
           <div>
             <Label className="text-sm font-medium mb-2 block">写真</Label>
-            <ImageUploader
-              name="image_url"
-              label="ギャラリー写真"
-              currentUrl={newImageUrl}
-              onUrlChange={setNewImageUrl}
-            />
+            <PhotoPicker {...addPicker} />
           </div>
           <div>
             <Label htmlFor="caption" className="text-sm font-medium">キャプション（説明文）</Label>
@@ -223,10 +276,10 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
             />
           </div>
           <div className="flex gap-3">
-            <Button onClick={handleAdd} disabled={!newImageUrl || isPending} className="bg-ireland-green hover:bg-ireland-green/90">
+            <Button onClick={handleAdd} disabled={!addPicker.url || isPending || addPicker.uploading} className="bg-ireland-green hover:bg-ireland-green/90">
               追加する
             </Button>
-            <Button variant="outline" onClick={() => { setAddMode(false); setNewImageUrl(""); setNewCaption("") }}>
+            <Button variant="outline" onClick={() => { setAddMode(false); addPicker.reset(); setNewCaption("") }}>
               キャンセル
             </Button>
           </div>
@@ -255,49 +308,16 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
                 ${dragOverId === photo.id && draggingId !== photo.id ? "ring-2 ring-ireland-green border-ireland-green" : ""}
               `}
             >
-              {/* 写真部分 */}
+              {/* 写真変更モード */}
               {editingPhotoId === photo.id ? (
                 <div className="p-4 space-y-3 border-b border-border" onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm font-bold text-foreground">写真を変更</p>
-                  {/* プレビュー */}
-                  <div className="relative w-full h-36 rounded-lg overflow-hidden border border-border bg-muted">
-                    <Image
-                      src={editPhotoUrl || photo.image_url}
-                      alt="プレビュー"
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                    {uploadingPhoto && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <Loader2 className="w-6 h-6 text-white animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                  {/* ファイル選択ボタン */}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => photoFileRef.current?.click()}
-                    disabled={uploadingPhoto}
-                    className="w-full"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {uploadingPhoto ? "アップロード中..." : "ファイルを選択"}
-                  </Button>
-                  {/* URL直接入力 */}
-                  <Input
-                    placeholder="またはURLを直接入力..."
-                    value={editPhotoUrl}
-                    onChange={(e) => setEditPhotoUrl(e.target.value)}
-                    className="text-xs"
-                  />
-                  <div className="flex gap-2">
+                  <PhotoPicker {...editPicker} placeholder="新しい画像のURLを入力..." />
+                  <div className="flex gap-2 pt-1">
                     <Button
                       size="sm"
                       onClick={() => handleUpdatePhoto(photo.id)}
-                      disabled={isPending || !editPhotoUrl}
+                      disabled={isPending || !editPicker.url || editPicker.uploading}
                       className="bg-ireland-green hover:bg-ireland-green/90 text-white"
                     >
                       <Check className="w-3.5 h-3.5 mr-1" />
@@ -306,7 +326,7 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => { setEditingPhotoId(null); setEditPhotoUrl("") }}
+                      onClick={() => { setEditingPhotoId(null); editPicker.reset() }}
                     >
                       <X className="w-3.5 h-3.5 mr-1" />
                       キャンセル
@@ -315,49 +335,31 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
                 </div>
               ) : (
                 <div className="relative w-full h-44">
-                  <Image src={photo.image_url} alt={photo.caption} fill className="object-cover" />
+                  <Image src={photo.image_url} alt={photo.caption || ""} fill className="object-cover" unoptimized />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  {/* ドラッグハンドル (左上) */}
-                  <div className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/50 text-white flex items-center justify-center cursor-grab active:cursor-grabbing">
+                  <div className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/50 text-white flex items-center justify-center cursor-grab">
                     <GripVertical className="w-4 h-4" />
                   </div>
-                  {/* 順番操作 + 各種ボタン (右上) */}
                   <div className="absolute top-2 right-2 flex gap-1">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); movePhoto(index, -1) }}
-                      disabled={index === 0}
-                      className="w-8 h-8 rounded-lg bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="上に移動"
-                    >
+                    <button onClick={(e) => { e.stopPropagation(); movePhoto(index, -1) }} disabled={index === 0}
+                      className="w-8 h-8 rounded-lg bg-black/50 hover:bg-black/70 text-white flex items-center justify-center disabled:opacity-30">
                       <ChevronUp className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); movePhoto(index, 1) }}
-                      disabled={index === photos.length - 1}
-                      className="w-8 h-8 rounded-lg bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="下に移動"
-                    >
+                    <button onClick={(e) => { e.stopPropagation(); movePhoto(index, 1) }} disabled={index === photos.length - 1}
+                      className="w-8 h-8 rounded-lg bg-black/50 hover:bg-black/70 text-white flex items-center justify-center disabled:opacity-30">
                       <ChevronDown className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setEditPhotoUrl(""); setEditingPhotoId(photo.id) }}
-                      className="w-8 h-8 rounded-lg bg-black/50 hover:bg-ireland-green/80 text-white flex items-center justify-center transition-colors"
-                      title="写真を変更"
-                    >
+                      onClick={(e) => { e.stopPropagation(); editPicker.reset(); setEditingPhotoId(photo.id) }}
+                      className="w-8 h-8 rounded-lg bg-black/50 hover:bg-ireland-green/80 text-white flex items-center justify-center">
                       <ImageIcon className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleToggle(photo.id, photo.is_active) }}
-                      className="w-8 h-8 rounded-lg bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
-                      title={photo.is_active ? "非表示にする" : "表示する"}
-                    >
+                    <button onClick={(e) => { e.stopPropagation(); handleToggle(photo.id, photo.is_active) }}
+                      className="w-8 h-8 rounded-lg bg-black/50 hover:bg-black/70 text-white flex items-center justify-center">
                       {photo.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(photo.id) }}
-                      className="w-8 h-8 rounded-lg bg-black/50 hover:bg-red-500/70 text-white flex items-center justify-center transition-colors"
-                      title="削除"
-                    >
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(photo.id) }}
+                      className="w-8 h-8 rounded-lg bg-black/50 hover:bg-red-500/70 text-white flex items-center justify-center">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -368,31 +370,20 @@ export default function GalleryManagement({ campaignId, initialPhotos }: Props) 
                   </div>
                 </div>
               )}
-              {/* キャプション部分 */}
+
+              {/* キャプション */}
               <div className="p-3">
-                {editingId === photo.id ? (
+                {editingCaptionId === photo.id ? (
                   <div className="flex gap-2">
-                    <Input
-                      value={editCaption}
-                      onChange={(e) => setEditCaption(e.target.value)}
-                      className="text-sm h-8"
-                      autoFocus
-                    />
-                    <button onClick={() => handleEditCaption(photo.id)} className="text-ireland-green hover:text-ireland-green/80">
-                      <Check className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => setEditingId(null)} className="text-muted-foreground hover:text-foreground">
-                      <X className="w-4 h-4" />
-                    </button>
+                    <Input value={editCaption} onChange={(e) => setEditCaption(e.target.value)} className="text-sm h-8" autoFocus />
+                    <button onClick={() => handleEditCaption(photo.id)} className="text-ireland-green"><Check className="w-4 h-4" /></button>
+                    <button onClick={() => setEditingCaptionId(null)} className="text-muted-foreground"><X className="w-4 h-4" /></button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <p className="text-sm text-foreground flex-1 truncate">{photo.caption || "（キャプションなし）"}</p>
-                    <button
-                      onClick={() => { setEditingId(photo.id); setEditCaption(photo.caption) }}
-                      className="text-muted-foreground hover:text-foreground shrink-0"
-                      title="キャプションを編集"
-                    >
+                    <button onClick={() => { setEditingCaptionId(photo.id); setEditCaption(photo.caption) }}
+                      className="text-muted-foreground hover:text-foreground shrink-0">
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                   </div>
