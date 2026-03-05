@@ -5,7 +5,11 @@ import { CheckCircle, Heart, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/components/LanguageProvider"
 
-export default function SuccessPageClient() {
+interface Props {
+  campaignTitle: string
+}
+
+export default function SuccessPageClient({ campaignTitle }: Props) {
   const { t } = useLanguage()
   return (
     <>
@@ -13,7 +17,9 @@ export default function SuccessPageClient() {
         <CheckCircle className="w-10 h-10 text-ireland-green" />
       </div>
       <h1 className="text-3xl font-black text-foreground mb-3">{t("successTitle")}</h1>
-      <p className="text-muted-foreground leading-relaxed mb-2">{t("successSubtitle")}</p>
+      <p className="text-muted-foreground leading-relaxed mb-2">
+        {campaignTitle}の実現に近づきました。
+      </p>
       <p className="text-sm text-muted-foreground mb-8">{t("successEmailNote")}</p>
       <div className="bg-ireland-green/10 border border-ireland-green/20 rounded-2xl p-6 mb-8">
         <div className="flex items-center justify-center gap-2 mb-2">

@@ -66,15 +66,15 @@ export async function POST(req: NextRequest) {
 
       // Send confirmation email to supporter
       try {
-        const pledgeResult = await sql`
+        const pledgeRows = await sql`
           SELECT p.supporter_name, p.supporter_email, rt.title as reward_title
           FROM pledges p
           LEFT JOIN reward_tiers rt ON rt.id = p.reward_tier_id
           WHERE p.stripe_session_id = ${session.id}
           LIMIT 1
         `
-        if (pledgeResult.rows.length && pledgeResult.rows[0].supporter_email) {
-          const { supporter_name, supporter_email, reward_title } = pledgeResult.rows[0]
+        if (pledgeRows.length > 0 && pledgeRows[0].supporter_email) {
+          const { supporter_name, supporter_email, reward_title } = pledgeRows[0]
           await sendTemplateEmail("pledge_confirmation", supporter_email, {
             supporter_name: supporter_name ?? "サポーター",
             reward_title: reward_title ?? "カスタム支援",
