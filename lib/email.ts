@@ -1,7 +1,23 @@
+import nodemailer from "nodemailer"
 import sql from "@/lib/db"
+
+const FROM_ADDRESS = "greenirelandfes@iris-corp.co.jp"
+const REPLY_TO_ADDRESS = "greenirelandfes@iris-corp.co.jp"
 
 function renderTemplate(body: string, vars: Record<string, string>): string {
   return body.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? "")
+}
+
+function createTransporter() {
+  const user = process.env.GMAIL_USER
+  const pass = process.env.GMAIL_APP_PASSWORD
+
+  if (!user || !pass) return null
+
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: { user, pass },
+  })
 }
 
 export async function sendTemplateEmail(
@@ -18,29 +34,48 @@ export async function sendTemplateEmail(
   const renderedSubject = renderTemplate(subject, vars)
   const renderedBody = renderTemplate(body, vars)
 
-  // Use Resend if available, otherwise log only
-  const resendKey = process.env.RESEND_API_KEY
-  if (!resendKey) {
-    console.log(`[email] Would send to ${to}\nSubject: ${renderedSubject}\n${renderedBody}`)
+  const transporter = createTransporter()
+
+  if (!transporter) {
+    console.log(`[email] GMAIL_USER / GMAIL_APP_PASSWORD not set — skipping send.`)
+    console.log(`[email] To: ${to} | Subject: ${renderedSubject}`)
+    console.log(`[email] Body:\n${renderedBody}`)
     return
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${resendKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: process.env.EMAIL_FROM ?? "noreply@greenirelandfes.atouch.dev",
-      to,
-      subject: renderedSubject,
-      text: renderedBody,
-    }),
+  await transporter.sendMail({
+    from: `"Green Ireland Festival" <${FROM_ADDRESS}>`,
+    replyTo: REPLY_TO_ADDRESS,
+    to,
+    subject: renderedSubject,
+    text: renderedBody,
   })
+}
 
-  if (!res.ok) {
-    const err = await res.text()
-    console.error("[email] Resend error:", err)
+export async function sendRawEmail({
+  to,
+  subject,
+  text,
+  html,
+}: {
+  to: string
+  subject: string
+  text: string
+  html?: string
+}): Promise<void> {
+  const transporter = createTransporter()
+
+  if (!transporter) {
+    console.log(`[email] GMAIL_USER / GMAIL_APP_PASSWORD not set — skipping send.`)
+    return
   }
+
+  await transporter.sendMail({
+    from: `"Green Ireland Festival" <${FROM_ADDRESS}>`,
+    replyTo: REPLY_TO_ADDRESS,
+    to,
+    subject,
+    text,
+    ...(html ? { html } : {}),
+  })
 }
