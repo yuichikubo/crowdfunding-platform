@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
 import sql from "@/lib/db"
 
 export async function POST(req: NextRequest) {
@@ -10,7 +10,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify payment with Stripe
-    const session = await stripe.checkout.sessions.retrieve(session_id)
+    const stripeClient = await getStripe()
+    const session = await stripeClient.checkout.sessions.retrieve(session_id)
     if (session.payment_status !== "paid") {
       return NextResponse.json({ status: "pending" })
     }

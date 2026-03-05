@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
 import sql from "@/lib/db"
 import type Stripe from "stripe"
 import { sendTemplateEmail } from "@/lib/email"
@@ -13,9 +13,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing signature or webhook secret" }, { status: 400 })
   }
 
+  const stripeClient = await getStripe()
+
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
+    event = stripeClient.webhooks.constructEvent(body, sig, webhookSecret)
   } catch (err) {
     console.error("[webhook] Signature verification failed:", err)
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 })

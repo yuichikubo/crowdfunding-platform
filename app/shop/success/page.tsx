@@ -1,10 +1,11 @@
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
 import sql from "@/lib/db"
 import ShopSuccessPageClient from "@/components/checkout/ShopSuccessPageClient"
 
 async function confirmOrder(sessionId: string) {
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId)
+    const stripeClient = await getStripe()
+    const session = await stripeClient.checkout.sessions.retrieve(sessionId)
     if (session.payment_status !== "paid") return null
 
     const { product_id, buyer_name, buyer_email } = session.metadata ?? {}

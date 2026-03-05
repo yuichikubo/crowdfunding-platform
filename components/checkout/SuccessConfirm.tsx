@@ -1,5 +1,5 @@
 // Server component: confirms payment with Stripe, updates DB, returns shipping info
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
 import sql from "@/lib/db"
 import ShippingForm from "./ShippingForm"
 
@@ -9,7 +9,8 @@ interface Props {
 
 export default async function SuccessConfirm({ sessionId }: Props) {
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId)
+    const stripeClient = await getStripe()
+    const session = await stripeClient.checkout.sessions.retrieve(sessionId)
     if (session.payment_status !== "paid") return null
 
     const { campaign_id, reward_tier_id } = session.metadata ?? {}
