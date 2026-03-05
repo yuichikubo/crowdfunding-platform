@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe"
 import sql from "@/lib/db"
 import type Stripe from "stripe"
+import { sendTemplateEmail } from "@/lib/email"
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -61,6 +62,28 @@ export async function POST(req: NextRequest) {
           SET claimed_count = claimed_count + 1, updated_at = NOW()
           WHERE id = ${rewardTierId}
         `
+      }
+
+      // Send confirmation email to supporter
+      try {
+        const pledgeResult = await sql`
+          SELECT p.supporter_name, p.supporter_email, rt.title as reward_title
+          FROM pledges p
+          LEFT JOIN reward_tiers rt ON rt.id = p.reward_tier_id
+          WHERE p.stripe_session_id = ${session.id}
+          LIMIT 1
+        `
+        if (pledgeResult.rows.length && pledgeResult.rows[0].supporter_email) {
+          const { supporter_name, supporter_email, reward_title } = pledgeResult.rows[0]
+          await sendTemplateEmail("pledge_confirmation", supporter_email, {
+            supporter_name: supporter_name ?? "サポーター",
+            reward_title: reward_title ?? "カスタム支援",
+            amount: `¥${(amount / 100).toLocaleString("ja-JP")}`,
+            email: supporter_email,
+          })
+        }
+      } catch (emailErr) {
+        console.error("[webhook] Email send failed:", emailErr)
       }
     } catch (dbErr) {
       console.error("[webhook] DB update failed:", dbErr)
