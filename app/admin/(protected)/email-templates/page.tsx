@@ -5,8 +5,7 @@ import { Mail } from "lucide-react"
 export const metadata = { title: "メール配信設定 - 管理画面" }
 
 export default async function EmailTemplatesPage() {
-  const result = await sql`SELECT * FROM email_templates ORDER BY id ASC`
-  const templates = result.rows
+  const templates = await sql`SELECT * FROM email_templates ORDER BY id ASC`
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -21,7 +20,7 @@ export default async function EmailTemplatesPage() {
           支援完了・購入完了などのイベント時に自動送信されるメールのテンプレートを管理します。
         </p>
         <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-800 dark:text-amber-300">
-          メール送信には <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">RESEND_API_KEY</code> と <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">EMAIL_FROM</code> の環境変数が必要です。未設定の場合はログ出力のみになります。
+          メール送信には <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">GMAIL_USER</code> と <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">GMAIL_APP_PASSWORD</code> の環境変数が必要です。送信元・返信先はいずれも <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">greenirelandfes@iris-corp.co.jp</code> です。
         </div>
       </div>
       <EmailTemplateEditor templates={templates} />
