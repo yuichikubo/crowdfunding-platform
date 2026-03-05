@@ -24,10 +24,19 @@ export default function SiteSettingsForm({ initial }: Props) {
 
   // Stripe — 設定済みなら masked 値を初期表示
   const MASKED = "••••••••••••••••"
+
   const stripeKeySaved = !!initial.stripe_secret_key
   const [stripeKey, setStripeKey] = useState(stripeKeySaved ? MASKED : "")
   const [showStripeKey, setShowStripeKey] = useState(false)
   const [stripeKeyEditing, setStripeKeyEditing] = useState(false)
+
+  const stripePubKeySaved = !!initial.stripe_publishable_key
+  const [stripePubKey, setStripePubKey] = useState(initial.stripe_publishable_key ?? "")
+
+  const stripeWebhookSaved = !!initial.stripe_webhook_secret
+  const [stripeWebhook, setStripeWebhook] = useState(stripeWebhookSaved ? MASKED : "")
+  const [showStripeWebhook, setShowStripeWebhook] = useState(false)
+  const [stripeWebhookEditing, setStripeWebhookEditing] = useState(false)
 
   // Gmail
   const gmailPassSaved = !!initial.gmail_app_password
@@ -43,9 +52,11 @@ export default function SiteSettingsForm({ initial }: Props) {
         site_subtitle: subtitle,
         logo_url: logoUrl,
         gmail_user: gmailUser,
+        stripe_publishable_key: stripePubKey,
       }
       // masked 値・空欄の場合は上書きしない（既存値を保持）
       if (stripeKey && stripeKey !== MASKED) payload.stripe_secret_key = stripeKey
+      if (stripeWebhook && stripeWebhook !== MASKED) payload.stripe_webhook_secret = stripeWebhook
       if (gmailPass && gmailPass !== MASKED) payload.gmail_app_password = gmailPass
 
       await fetch("/api/admin/site-settings", {
@@ -56,6 +67,7 @@ export default function SiteSettingsForm({ initial }: Props) {
       setSaved(true)
       // 保存後は masked 表示に戻す
       if (stripeKey && stripeKey !== MASKED) { setStripeKey(MASKED); setStripeKeyEditing(false) }
+      if (stripeWebhook && stripeWebhook !== MASKED) { setStripeWebhook(MASKED); setStripeWebhookEditing(false) }
       if (gmailPass && gmailPass !== MASKED) { setGmailPass(MASKED); setGmailPassEditing(false) }
       setTimeout(() => setSaved(false), 3000)
     })
@@ -157,6 +169,71 @@ export default function SiteSettingsForm({ initial }: Props) {
           </div>
           <p className="text-xs text-muted-foreground">
             Stripe ダッシュボード → 開発者 → APIキー から取得できます。本番環境では <code className="font-mono bg-muted px-1 rounded">sk_live_</code> で始まるキーを使用してください。
+          </p>
+        </div>
+
+        {/* 公開キー */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="stripe_publishable_key">
+              Stripe 公開キー（Publishable Key）
+              {stripePubKeySaved && (
+                <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>
+              )}
+            </Label>
+          </div>
+          <Input
+            id="stripe_publishable_key"
+            type="text"
+            value={stripePubKey}
+            onChange={(e) => setStripePubKey(e.target.value)}
+            placeholder="pk_live_xxxxxxxxxxxx"
+            className="font-mono text-sm"
+          />
+          <p className="text-xs text-muted-foreground">
+            本番環境では <code className="font-mono bg-muted px-1 rounded">pk_live_</code> で始まるキーを使用してください。
+          </p>
+        </div>
+
+        {/* Webhook シークレット */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="stripe_webhook_secret">
+              Stripe Webhook シークレット
+              {stripeWebhookSaved && (
+                <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>
+              )}
+            </Label>
+            {stripeWebhookSaved && !stripeWebhookEditing && (
+              <button
+                type="button"
+                onClick={() => { setStripeWebhook(""); setStripeWebhookEditing(true) }}
+                className="text-xs text-ireland-green underline underline-offset-2"
+              >
+                変更する
+              </button>
+            )}
+          </div>
+          <div className="relative">
+            <Input
+              id="stripe_webhook_secret"
+              type={showStripeWebhook ? "text" : "password"}
+              value={stripeWebhook}
+              onChange={(e) => setStripeWebhook(e.target.value)}
+              readOnly={stripeWebhookSaved && !stripeWebhookEditing}
+              placeholder="whsec_xxxxxxxxxxxx"
+              className={`pr-10 font-mono text-sm ${stripeWebhookSaved && !stripeWebhookEditing ? "bg-muted cursor-default select-none" : ""}`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowStripeWebhook((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showStripeWebhook ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Stripe ダッシュボード → 開発者 → Webhook → エンドポイント → 署名シークレット から取得できます。
           </p>
         </div>
       </div>

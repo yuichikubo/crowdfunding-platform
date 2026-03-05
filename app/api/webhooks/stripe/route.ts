@@ -7,7 +7,13 @@ import { sendTemplateEmail } from "@/lib/email"
 export async function POST(req: NextRequest) {
   const body = await req.text()
   const sig = req.headers.get("stripe-signature")
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+
+  // DB → 環境変数 の順で Webhook シークレットを解決
+  let webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+  try {
+    const rows = await sql`SELECT value FROM site_settings WHERE key = 'stripe_webhook_secret' LIMIT 1`
+    if (rows[0]?.value) webhookSecret = rows[0].value
+  } catch { /* DB失敗時は環境変数を使用 */ }
 
   if (!sig || !webhookSecret) {
     return NextResponse.json({ error: "Missing signature or webhook secret" }, { status: 400 })
