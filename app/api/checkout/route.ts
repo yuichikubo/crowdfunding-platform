@@ -11,6 +11,8 @@ export async function POST(req: NextRequest) {
       amount,
       supporter_name,
       supporter_email,
+      supporter_mobile,
+      supporter_phone,
       message,
       is_anonymous,
     } = body
@@ -20,6 +22,12 @@ export async function POST(req: NextRequest) {
     }
     if (!supporter_email) {
       return NextResponse.json({ error: "メールアドレスが必要です。" }, { status: 400 })
+    }
+    if (!supporter_mobile) {
+      return NextResponse.json({ error: "携帯番号が必要です。" }, { status: 400 })
+    }
+    if (!supporter_phone) {
+      return NextResponse.json({ error: "電話番号が必要です。" }, { status: 400 })
     }
 
     // Validate campaign exists and is active
@@ -85,12 +93,15 @@ export async function POST(req: NextRequest) {
     await sql`
       INSERT INTO pledges (
         campaign_id, reward_tier_id, supporter_name, supporter_email,
+        supporter_mobile, supporter_phone,
         amount, stripe_session_id, payment_status, message, is_anonymous
       ) VALUES (
         ${campaign_id},
         ${reward_tier_id ?? null},
         ${supporter_name ?? null},
         ${supporter_email},
+        ${supporter_mobile ?? null},
+        ${supporter_phone ?? null},
         ${amount},
         ${session.id},
         'pending',
