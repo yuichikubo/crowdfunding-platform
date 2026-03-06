@@ -81,27 +81,10 @@ function FundUsageBlock({ block }: { block: PageBlock }) {
 
 interface Props {
   blocks: PageBlock[]
-  isTranslating?: boolean
   fallbackAboutHtml?: string
 }
 
-export default function BlockRenderer({ blocks, isTranslating, fallbackAboutHtml }: Props) {
-  if (isTranslating) {
-    return (
-      <div className="space-y-4">
-        <div className="bg-card rounded-2xl border border-border p-6 space-y-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <div className="w-4 h-4 border-2 border-ireland-green border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm">翻訳中...</span>
-          </div>
-          <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
-          <div className="h-4 bg-muted rounded animate-pulse w-full" />
-          <div className="h-4 bg-muted rounded animate-pulse w-5/6" />
-        </div>
-      </div>
-    )
-  }
-
+export default function BlockRenderer({ blocks, fallbackAboutHtml }: Props) {
   if (!blocks || blocks.length === 0) {
     if (fallbackAboutHtml) {
       return (

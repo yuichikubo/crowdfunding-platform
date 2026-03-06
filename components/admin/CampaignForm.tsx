@@ -9,7 +9,7 @@ import BlockEditor from "@/components/admin/BlockEditor"
 import type { PageBlock } from "@/lib/block-types"
 import type { Campaign } from "@/lib/db"
 import Link from "next/link"
-import { ArrowLeft, Save, Loader2, Languages } from "lucide-react"
+import { ArrowLeft, Save, Loader2, Languages, Check } from "lucide-react"
 
 interface Props {
   action: (formData: FormData) => Promise<void>
@@ -20,6 +20,7 @@ export default function CampaignForm({ action, defaultValues }: Props) {
   const formRef = useRef<HTMLFormElement>(null)
   const [isPending, startTransition] = useTransition()
   const [isTranslating, setIsTranslating] = useState(false)
+  const [translateDone, setTranslateDone] = useState(false)
   const [imageUrl, setImageUrl] = useState<string>(defaultValues?.hero_image_url ?? "")
 
   const d = defaultValues as any
@@ -33,10 +34,12 @@ export default function CampaignForm({ action, defaultValues }: Props) {
     return []
   }
 
-  // ページブロック（日本語のみ。翻訳はBlockRenderer内でリアルタイム実行）
   const [blocks, setBlocks] = useState<PageBlock[]>(() => parseBlocks(d?.page_blocks))
+  // 翻訳済みブロック（DBから読み込み or 翻訳ボタンで生成）
+  const [blocksEn, setBlocksEn] = useState<PageBlock[]>(() => parseBlocks(d?.page_blocks_en))
+  const [blocksKo, setBlocksKo] = useState<PageBlock[]>(() => parseBlocks(d?.page_blocks_ko))
+  const [blocksZh, setBlocksZh] = useState<PageBlock[]>(() => parseBlocks(d?.page_blocks_zh))
 
-  // Controlled state for all translatable fields
   const [fields, setFields] = useState({
     title: d?.title ?? "",
     short_description: d?.short_description ?? "",
@@ -53,7 +56,6 @@ export default function CampaignForm({ action, defaultValues }: Props) {
 
   const toDateTimeInput = (dateStr?: string) => {
     if (!dateStr) return ""
-    // "YYYY-MM-DDTHH:MM" 形式（datetime-local の value 形式）
     const d = new Date(dateStr)
     if (isNaN(d.getTime())) return ""
     const pad = (n: number) => String(n).padStart(2, "0")
@@ -61,15 +63,31 @@ export default function CampaignForm({ action, defaultValues }: Props) {
   }
 
   const handleAutoTranslate = async () => {
-    if (!fields.title && !fields.short_description) {
-      alert("日本語のタイトルまたは説明文を入力してください。")
+    if (!fields.title && !fields.short_description && blocks.length === 0) {
+      alert("日本語のタイトル・説明文またはページコンテンツを入力してください。")
       return
     }
     setIsTranslating(true)
+    setTranslateDone(false)
     try {
+      // タイトル・説明文
       const texts: Record<string, string> = {}
       if (fields.title) texts.title = fields.title
       if (fields.short_description) texts.short_description = fields.short_description
+
+      // ブロック内テキストを抽出
+      blocks.forEach((block, i) => {
+        if (block.title) texts[`b${i}_title`] = block.title
+        if (block.content && block.type !== "divider") texts[`b${i}_content`] = block.content
+        if (block.imageCaption) texts[`b${i}_caption`] = block.imageCaption
+        if (block.imageAlt) texts[`b${i}_alt`] = block.imageAlt
+        if (block.items) {
+          block.items.forEach((item, j) => {
+            if (item.label) texts[`b${i}_i${j}_label`] = item.label
+            if (item.description) texts[`b${i}_i${j}_desc`] = item.description
+          })
+        }
+      })
 
       const res = await fetch("/api/admin/translate", {
         method: "POST",
@@ -79,6 +97,7 @@ export default function CampaignForm({ action, defaultValues }: Props) {
       const data = await res.json()
       if (data.error) throw new Error(data.error)
 
+      // タイトル・説明文の翻訳を反映
       setFields((prev) => ({
         ...prev,
         title_en: data.translations.en?.title ?? prev.title_en,
@@ -88,6 +107,32 @@ export default function CampaignForm({ action, defaultValues }: Props) {
         title_zh: data.translations.zh?.title ?? prev.title_zh,
         short_description_zh: data.translations.zh?.short_description ?? prev.short_description_zh,
       }))
+
+      // ブロックの翻訳を各言語に反映
+      if (blocks.length > 0) {
+        const buildTranslatedBlocks = (lang: string): PageBlock[] => {
+          return blocks.map((block, i) => ({
+            ...block,
+            title: data.translations[lang]?.[`b${i}_title`] ?? block.title,
+            content: block.type !== "divider"
+              ? (data.translations[lang]?.[`b${i}_content`] ?? block.content)
+              : block.content,
+            imageCaption: data.translations[lang]?.[`b${i}_caption`] ?? block.imageCaption,
+            imageAlt: data.translations[lang]?.[`b${i}_alt`] ?? block.imageAlt,
+            items: block.items?.map((item, j) => ({
+              ...item,
+              label: data.translations[lang]?.[`b${i}_i${j}_label`] ?? item.label,
+              description: data.translations[lang]?.[`b${i}_i${j}_desc`] ?? item.description,
+            })),
+          }))
+        }
+        setBlocksEn(buildTranslatedBlocks("en"))
+        setBlocksKo(buildTranslatedBlocks("ko"))
+        setBlocksZh(buildTranslatedBlocks("zh"))
+      }
+
+      setTranslateDone(true)
+      setTimeout(() => setTranslateDone(false), 5000)
     } catch (err) {
       alert("翻訳に失敗しました。しばらくしてから再度お試しください。")
     } finally {
@@ -110,7 +155,9 @@ export default function CampaignForm({ action, defaultValues }: Props) {
     const fd = new FormData(form)
     fd.set("hero_image_url", imageUrl)
     fd.set("page_blocks", JSON.stringify(blocks))
-    // Overwrite with controlled state values
+    fd.set("page_blocks_en", JSON.stringify(blocksEn))
+    fd.set("page_blocks_ko", JSON.stringify(blocksKo))
+    fd.set("page_blocks_zh", JSON.stringify(blocksZh))
     Object.entries(fields).forEach(([k, v]) => fd.set(k, v))
     startTransition(() => action(fd))
   }
@@ -121,9 +168,7 @@ export default function CampaignForm({ action, defaultValues }: Props) {
 
         {/* 日本語 */}
         <div className="pb-5 border-b border-border space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">��本語</p>
-          </div>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">日本語</p>
           <div>
             <Label htmlFor="title" className="text-sm font-bold">タイトル <span className="text-destructive">*</span></Label>
             <Input id="title" name="title" required value={fields.title} onChange={set("title")} placeholder="例：Green Ireland Festival 2026 クラウドファンディング" className="mt-1.5" />
@@ -137,15 +182,20 @@ export default function CampaignForm({ action, defaultValues }: Props) {
           <Button
             type="button"
             onClick={handleAutoTranslate}
-            disabled={isTranslating || (!fields.title && !fields.short_description)}
+            disabled={isTranslating || (!fields.title && !fields.short_description && blocks.length === 0)}
             variant="outline"
             className="border-ireland-green text-ireland-green hover:bg-ireland-green/10 rounded-xl font-bold"
           >
             {isTranslating
-              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />翻訳中...</>
-              : <><Languages className="w-4 h-4 mr-2" />EN / KO / ZH に自動翻訳</>
+              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />タイトル＋ブロックを翻訳中...</>
+              : translateDone
+                ? <><Check className="w-4 h-4 mr-2" />翻訳完了（EN/KO/ZH）</>
+                : <><Languages className="w-4 h-4 mr-2" />EN / KO / ZH に自動翻訳（タイトル＋ブロック）</>
             }
           </Button>
+          {translateDone && (
+            <p className="text-xs text-ireland-green">タイトル・説明文・ページコンテンツが翻訳されました。「保存する」で反映されます。</p>
+          )}
         </div>
 
         {/* English */}
@@ -179,7 +229,7 @@ export default function CampaignForm({ action, defaultValues }: Props) {
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">中文</p>
           <div>
             <Label htmlFor="title_zh" className="text-sm font-bold">标题</Label>
-            <Input id="title_zh" name="title_zh" value={fields.title_zh} onChange={set("title_zh")} placeholder="例: 绿色爱尔兰��� 2026 众筹" className="mt-1.5" />
+            <Input id="title_zh" name="title_zh" value={fields.title_zh} onChange={set("title_zh")} placeholder="例: 绿色爱尔兰节 2026 众筹" className="mt-1.5" />
           </div>
           <div>
             <Label htmlFor="short_description_zh" className="text-sm font-bold">简短说明</Label>
@@ -200,7 +250,7 @@ export default function CampaignForm({ action, defaultValues }: Props) {
         <div>
           <h2 className="text-sm font-black text-foreground">ページコンテンツ</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            ブロックを追加・並び替えて公開ページのレイアウトを自由に構成できます。公開ページでは言語切り替え時にブロック内のテキストが自動翻訳されます。
+            ブロックを追加・並び替えて公開ページのレイアウトを自由に構成できます。「自動翻訳」ボタンでEN/KO/ZHも自動生成されます。
           </p>
         </div>
         <BlockEditor initialBlocks={blocks} onChange={setBlocks} onImageUpload={handleImageUpload} />
@@ -249,10 +299,7 @@ export default function CampaignForm({ action, defaultValues }: Props) {
 
       <div className="flex gap-3 justify-between">
         <Button type="button" variant="outline" className="rounded-xl" asChild>
-          <Link href="/admin/campaigns">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            戻る
-          </Link>
+          <Link href="/admin/campaigns"><ArrowLeft className="w-4 h-4 mr-2" />戻る</Link>
         </Button>
         <Button type="submit" disabled={isPending} className="bg-ireland-green hover:bg-ireland-green/90 text-white rounded-xl">
           {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
