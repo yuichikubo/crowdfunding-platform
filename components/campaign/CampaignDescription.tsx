@@ -37,17 +37,24 @@ export default function CampaignDescription({ campaign, gallery, performers }: P
   const [lightbox, setLightbox] = useState<number | null>(null)
   const { t, locale, lang } = useLanguage()
 
-  // page_blocks を取得（jsonb は Neon が自動パースするため JSON.parse 不要）
-  const blocks: PageBlock[] = (() => {
-    const raw = (campaign as any).page_blocks
+  const parseBlocks = (raw: unknown): PageBlock[] => {
     if (!raw) return []
     if (Array.isArray(raw)) return raw as PageBlock[]
     if (typeof raw === "string") {
       try { return JSON.parse(raw) as PageBlock[] } catch { return [] }
     }
     return []
-  })()
+  }
 
+  // 言語別ブロックを取得（空の場合は日本語にフォールバック）
+  const jaBlocks = parseBlocks((campaign as any).page_blocks)
+  const langBlocks: Record<string, PageBlock[]> = {
+    ja: jaBlocks,
+    en: parseBlocks((campaign as any).page_blocks_en),
+    ko: parseBlocks((campaign as any).page_blocks_ko),
+    zh: parseBlocks((campaign as any).page_blocks_zh),
+  }
+  const blocks = (langBlocks[lang]?.length > 0 ? langBlocks[lang] : jaBlocks)
   const hasBlocks = blocks.length > 0
 
   const localizePerformer = (p: Performer) => ({

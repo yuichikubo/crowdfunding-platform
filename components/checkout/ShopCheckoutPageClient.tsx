@@ -4,7 +4,9 @@ import Link from "next/link"
 import Image from "next/image"
 import { Suspense } from "react"
 import { ArrowLeft, Leaf } from "lucide-react"
+import Image from "next/image"
 import { useLanguage } from "@/components/LanguageProvider"
+import { useSiteSettings } from "@/components/SiteSettingsProvider"
 import { formatYen } from "@/lib/utils"
 import ShopCheckoutForm from "@/components/checkout/ShopCheckoutForm"
 
@@ -24,6 +26,8 @@ type Props =
 
 export default function ShopCheckoutPageClient(props: Props) {
   const { t, lang } = useLanguage()
+  const { logoUrl, siteTitle } = useSiteSettings()
+  const title = siteTitle || "Green Ireland Festival"
 
   if (props.type === "no_product") {
     return (
@@ -46,11 +50,15 @@ export default function ShopCheckoutPageClient(props: Props) {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 bg-ireland-dark border-b border-ireland-green/20">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-          <div className="w-8 h-8 bg-ireland-gold rounded-lg flex items-center justify-center">
-            <Leaf className="w-4 h-4 text-ireland-dark" />
-          </div>
+          {logoUrl ? (
+            <Image src={logoUrl} alt={title} width={32} height={32} className="rounded-lg object-cover" />
+          ) : (
+            <div className="w-8 h-8 bg-ireland-gold rounded-lg flex items-center justify-center shrink-0">
+              <Leaf className="w-4 h-4 text-ireland-dark" />
+            </div>
+          )}
           <div>
-            <p className="font-black text-white text-sm leading-none">Green Ireland Festival</p>
+            <p className="font-black text-white text-sm leading-none">{title}</p>
             <p className="text-ireland-gold text-xs">{t("officialShop")}</p>
           </div>
         </div>

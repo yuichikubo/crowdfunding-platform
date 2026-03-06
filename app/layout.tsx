@@ -1,8 +1,9 @@
-// Build refresh: 2024-03-06T12:00:00Z - Fixed SupportersList hydration
 import type { Metadata } from 'next'
 import { Noto_Sans_JP } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { LanguageProvider } from '@/components/LanguageProvider'
+import { SiteSettingsProvider } from '@/components/SiteSettingsProvider'
+import sql from '@/lib/db'
 import './globals.css'
 
 const notoSansJP = Noto_Sans_JP({
@@ -22,17 +23,35 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+async function getSiteSettings() {
+  try {
+    const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('logo_url', 'site_title')`
+    const map: Record<string, string> = {}
+    for (const r of rows) map[r.key] = r.value
+    return map
+  } catch {
+    return {}
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const settings = await getSiteSettings()
+
   return (
     <html lang="ja">
       <body className={`${notoSansJP.className} font-sans antialiased bg-background text-foreground`}>
-        <LanguageProvider>
-          {children}
-        </LanguageProvider>
+        <SiteSettingsProvider
+          logoUrl={settings.logo_url ?? ""}
+          siteTitle={settings.site_title ?? "Green Ireland Festival"}
+        >
+          <LanguageProvider>
+            {children}
+          </LanguageProvider>
+        </SiteSettingsProvider>
         <Analytics />
       </body>
     </html>

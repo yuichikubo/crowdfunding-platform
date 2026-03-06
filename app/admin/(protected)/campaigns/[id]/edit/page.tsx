@@ -27,14 +27,13 @@ export default async function EditCampaignPage({ params }: { params: Promise<{ i
     const short_description_ko = formData.get("short_description_ko") as string
     const title_zh = formData.get("title_zh") as string
     const short_description_zh = formData.get("short_description_zh") as string
-    const page_blocks_raw = formData.get("page_blocks") as string
-    // jsonb カラムには JSON.parse した値を渡す（Neon が自動でjsonbシリアライズ）
-    let page_blocks_json: unknown
-    try {
-      page_blocks_json = JSON.parse(page_blocks_raw || "[]")
-    } catch {
-      page_blocks_json = []
+    const parseBlocksField = (raw: FormDataEntryValue | null): unknown => {
+      try { return JSON.parse((raw as string) || "[]") } catch { return [] }
     }
+    const page_blocks_json   = parseBlocksField(formData.get("page_blocks"))
+    const page_blocks_en     = parseBlocksField(formData.get("page_blocks_en"))
+    const page_blocks_ko     = parseBlocksField(formData.get("page_blocks_ko"))
+    const page_blocks_zh     = parseBlocksField(formData.get("page_blocks_zh"))
 
     await sql`
       UPDATE campaigns SET
@@ -53,7 +52,10 @@ export default async function EditCampaignPage({ params }: { params: Promise<{ i
         short_description_ko = ${short_description_ko || null},
         title_zh = ${title_zh || null},
         short_description_zh = ${short_description_zh || null},
-        page_blocks = ${JSON.stringify(page_blocks_json)}::jsonb,
+        page_blocks    = ${JSON.stringify(page_blocks_json)}::jsonb,
+        page_blocks_en = ${JSON.stringify(page_blocks_en)}::jsonb,
+        page_blocks_ko = ${JSON.stringify(page_blocks_ko)}::jsonb,
+        page_blocks_zh = ${JSON.stringify(page_blocks_zh)}::jsonb,
         updated_at = NOW()
       WHERE id = ${campaign.id}
     `

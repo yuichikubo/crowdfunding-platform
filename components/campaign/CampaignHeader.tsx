@@ -4,14 +4,11 @@ import Image from "next/image"
 import { Leaf } from "lucide-react"
 import LanguageSwitcher from "@/components/LanguageSwitcher"
 import { useLanguage } from "@/components/LanguageProvider"
+import { useSiteSettings } from "@/components/SiteSettingsProvider"
 
-interface CampaignHeaderProps {
-  logoUrl?: string
-  siteTitle?: string
-}
-
-export default function CampaignHeader({ logoUrl, siteTitle }: CampaignHeaderProps) {
+export default function CampaignHeader() {
   const { t } = useLanguage()
+  const { logoUrl, siteTitle } = useSiteSettings()
   const title = siteTitle || "Green Ireland Festival"
 
   return (

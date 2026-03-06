@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { CheckCircle2, Leaf } from "lucide-react"
 import { useLanguage } from "@/components/LanguageProvider"
+import { useSiteSettings } from "@/components/SiteSettingsProvider"
 import ShopSuccessShippingForm from "@/components/checkout/ShopSuccessShippingForm"
 
 interface Props {
@@ -16,6 +17,8 @@ interface Props {
 
 export default function ShopSuccessPageClient({ order }: Props) {
   const { t } = useLanguage()
+  const { siteTitle } = useSiteSettings()
+  const title = siteTitle || "Green Ireland Festival"
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
@@ -28,7 +31,7 @@ export default function ShopSuccessPageClient({ order }: Props) {
             <div className="w-7 h-7 bg-ireland-gold rounded-lg flex items-center justify-center">
               <Leaf className="w-3.5 h-3.5 text-ireland-dark" />
             </div>
-            <span className="font-black text-foreground text-sm">Green Ireland Festival Shop</span>
+            <span className="font-black text-foreground text-sm">{title} Shop</span>
           </div>
           <h1 className="text-2xl font-black text-foreground mb-3">{t("shopSuccessTitle")}</h1>
           {order && (
