@@ -38,6 +38,7 @@ export default function CampaignHero({ campaign }: Props) {
           fill
           className="object-cover"
           priority
+          loading="eager"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ireland-dark/85 via-ireland-dark/30 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
