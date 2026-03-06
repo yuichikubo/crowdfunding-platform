@@ -148,6 +148,9 @@ export default async function Page() {
             <Link href="/legal/tokusho" className="hover:text-foreground transition-colors">
               特定商取引法に基づく表記
             </Link>
+            <Link href="/legal/terms" className="hover:text-foreground transition-colors">
+              利用規約
+            </Link>
             <Link href="/legal/privacy" className="hover:text-foreground transition-colors">
               プライバシーポリシー
             </Link>

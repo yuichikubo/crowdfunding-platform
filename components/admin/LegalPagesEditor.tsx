@@ -7,20 +7,23 @@ import Link from "next/link"
 
 interface Props {
   tokushoContent: string
+  termsContent: string
   privacyContent: string
   systemContent: string
 }
 
-type Tab = "tokusho" | "privacy" | "system"
+type Tab = "tokusho" | "terms" | "privacy" | "system"
 
 const tabs: { key: Tab; label: string; previewUrl: string }[] = [
   { key: "tokusho", label: "特定商取引法", previewUrl: "/legal/tokusho" },
+  { key: "terms", label: "利用規約", previewUrl: "/legal/terms" },
   { key: "privacy", label: "プライバシーポリシー", previewUrl: "/legal/privacy" },
   { key: "system", label: "システム提供・決済代行", previewUrl: "/legal/system" },
 ]
 
-export default function LegalPagesEditor({ tokushoContent, privacyContent, systemContent }: Props) {
+export default function LegalPagesEditor({ tokushoContent, termsContent, privacyContent, systemContent }: Props) {
   const [tokusho, setTokusho] = useState(tokushoContent)
+  const [terms, setTerms] = useState(termsContent)
   const [privacy, setPrivacy] = useState(privacyContent)
   const [system, setSystem] = useState(systemContent)
   const [isPending, startTransition] = useTransition()
@@ -34,6 +37,7 @@ export default function LegalPagesEditor({ tokushoContent, privacyContent, syste
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           legal_tokusho: tokusho,
+          legal_terms: terms,
           legal_privacy: privacy,
           legal_system: system,
         }),
@@ -80,10 +84,11 @@ export default function LegalPagesEditor({ tokushoContent, privacyContent, syste
         </p>
 
         <textarea
-          value={tab === "tokusho" ? tokusho : tab === "privacy" ? privacy : system}
+          value={tab === "tokusho" ? tokusho : tab === "terms" ? terms : tab === "privacy" ? privacy : system}
           onChange={(e) => {
             const val = e.target.value
             if (tab === "tokusho") setTokusho(val)
+            else if (tab === "terms") setTerms(val)
             else if (tab === "privacy") setPrivacy(val)
             else setSystem(val)
           }}
