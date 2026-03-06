@@ -24,16 +24,20 @@ export default function CampaignForm({ action, defaultValues }: Props) {
 
   const d = defaultValues as any
 
-  // ページブロック（jsonb は Neon が自動パースするため配列かどうかで分岐）
-  const [blocks, setBlocks] = useState<PageBlock[]>(() => {
-    const raw = d?.page_blocks
+  const parseBlocks = (raw: unknown): PageBlock[] => {
     if (!raw) return []
     if (Array.isArray(raw)) return raw as PageBlock[]
     if (typeof raw === "string") {
       try { return JSON.parse(raw) as PageBlock[] } catch { return [] }
     }
     return []
-  })
+  }
+
+  // ページブロック（jsonb は Neon が自動パースするため配列かどうかで分岐）
+  const [blocks, setBlocks] = useState<PageBlock[]>(() => parseBlocks(d?.page_blocks))
+  const [blocksEn, setBlocksEn] = useState<PageBlock[]>(() => parseBlocks(d?.page_blocks_en))
+  const [blocksKo, setBlocksKo] = useState<PageBlock[]>(() => parseBlocks(d?.page_blocks_ko))
+  const [blocksZh, setBlocksZh] = useState<PageBlock[]>(() => parseBlocks(d?.page_blocks_zh))
 
   // Controlled state for all translatable fields
   const [fields, setFields] = useState({
@@ -109,6 +113,9 @@ export default function CampaignForm({ action, defaultValues }: Props) {
     const fd = new FormData(form)
     fd.set("hero_image_url", imageUrl)
     fd.set("page_blocks", JSON.stringify(blocks))
+    fd.set("page_blocks_en", JSON.stringify(blocksEn))
+    fd.set("page_blocks_ko", JSON.stringify(blocksKo))
+    fd.set("page_blocks_zh", JSON.stringify(blocksZh))
     // Overwrite with controlled state values
     Object.entries(fields).forEach(([k, v]) => fd.set(k, v))
     startTransition(() => action(fd))
@@ -194,19 +201,48 @@ export default function CampaignForm({ action, defaultValues }: Props) {
         />
       </div>
 
-      {/* ページコンテンツブロック */}
+      {/* ページコンテンツブロック（日本語） */}
       <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
         <div>
-          <h2 className="text-sm font-black text-foreground">ページコンテンツ</h2>
+          <h2 className="text-sm font-black text-foreground">ページコンテンツ（日本語）</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            ブロックを追加・並び替えて公開ページのレイアウトを自由に構成できます。「プロジェクト説明」や「資金の使い道」ブロックが公開ページに反映されます。
+            ブロックを追加・並び替えて公開ページのレイアウトを自由に構成できます。
           </p>
         </div>
-        <BlockEditor
-          initialBlocks={blocks}
-          onChange={setBlocks}
-          onImageUpload={handleImageUpload}
-        />
+        <BlockEditor initialBlocks={blocks} onChange={setBlocks} onImageUpload={handleImageUpload} />
+      </div>
+
+      {/* ページコンテンツブロック（English） */}
+      <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
+        <div>
+          <h2 className="text-sm font-black text-foreground">ページコンテンツ（English）</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            English version of page blocks. Leave empty to fall back to Japanese.
+          </p>
+        </div>
+        <BlockEditor initialBlocks={blocksEn} onChange={setBlocksEn} onImageUpload={handleImageUpload} />
+      </div>
+
+      {/* ページコンテンツブロック（한국어） */}
+      <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
+        <div>
+          <h2 className="text-sm font-black text-foreground">ページコンテンツ（한국어）</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            한국어 버전 페이지 블록. 비워두면 일본어로 대체됩니다.
+          </p>
+        </div>
+        <BlockEditor initialBlocks={blocksKo} onChange={setBlocksKo} onImageUpload={handleImageUpload} />
+      </div>
+
+      {/* ページコンテンツブロック（中文） */}
+      <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
+        <div>
+          <h2 className="text-sm font-black text-foreground">ページコンテンツ（中文）</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            中文版页面块。留空则回退到日语。
+          </p>
+        </div>
+        <BlockEditor initialBlocks={blocksZh} onChange={setBlocksZh} onImageUpload={handleImageUpload} />
       </div>
 
       <div className="bg-card rounded-2xl border border-border p-6 space-y-5">

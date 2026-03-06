@@ -21,17 +21,35 @@ export default function NewCampaignPage() {
     const short_description_ko = formData.get("short_description_ko") as string
     const title_zh = formData.get("title_zh") as string
     const short_description_zh = formData.get("short_description_zh") as string
-    const page_blocks_raw = formData.get("page_blocks") as string
-    let page_blocks_json: unknown
-    try {
-      page_blocks_json = JSON.parse(page_blocks_raw || "[]")
-    } catch {
-      page_blocks_json = []
+    const parseBlocksField = (raw: FormDataEntryValue | null): unknown => {
+      try { return JSON.parse((raw as string) || "[]") } catch { return [] }
     }
+    const page_blocks_json = parseBlocksField(formData.get("page_blocks"))
+    const page_blocks_en   = parseBlocksField(formData.get("page_blocks_en"))
+    const page_blocks_ko   = parseBlocksField(formData.get("page_blocks_ko"))
+    const page_blocks_zh   = parseBlocksField(formData.get("page_blocks_zh"))
 
     await sql`
-      INSERT INTO campaigns (title, short_description, description, goal_amount, start_date, end_date, status, hero_image_url, event_date, event_venue, title_en, short_description_en, title_ko, short_description_ko, title_zh, short_description_zh, page_blocks)
-      VALUES (${title}, ${short_description}, ${''}, ${goal_amount}, ${start_date}, ${end_date}, ${status}, ${hero_image_url}, ${event_date || null}, ${event_venue || null}, ${title_en || null}, ${short_description_en || null}, ${title_ko || null}, ${short_description_ko || null}, ${title_zh || null}, ${short_description_zh || null}, ${JSON.stringify(page_blocks_json)}::jsonb)
+      INSERT INTO campaigns (
+        title, short_description, description, goal_amount,
+        start_date, end_date, status, hero_image_url,
+        event_date, event_venue,
+        title_en, short_description_en,
+        title_ko, short_description_ko,
+        title_zh, short_description_zh,
+        page_blocks, page_blocks_en, page_blocks_ko, page_blocks_zh
+      ) VALUES (
+        ${title}, ${short_description}, ${''}, ${goal_amount},
+        ${start_date}, ${end_date}, ${status}, ${hero_image_url},
+        ${event_date || null}, ${event_venue || null},
+        ${title_en || null}, ${short_description_en || null},
+        ${title_ko || null}, ${short_description_ko || null},
+        ${title_zh || null}, ${short_description_zh || null},
+        ${JSON.stringify(page_blocks_json)}::jsonb,
+        ${JSON.stringify(page_blocks_en)}::jsonb,
+        ${JSON.stringify(page_blocks_ko)}::jsonb,
+        ${JSON.stringify(page_blocks_zh)}::jsonb
+      )
     `
     redirect("/admin/campaigns")
   }
