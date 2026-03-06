@@ -6,11 +6,71 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import ImageUploader from "@/components/admin/ImageUploader"
-import { Check, Save, CreditCard, Mail, Globe, Eye, EyeOff } from "lucide-react"
+import { Check, Save, CreditCard, Mail, Globe, Eye, EyeOff, FlaskConical, Zap } from "lucide-react"
 import Image from "next/image"
 
 interface Props {
   initial: Record<string, string>
+}
+
+const MASKED = "••••••••••••••••"
+
+function SecretField({
+  id,
+  label,
+  placeholder,
+  saved,
+  value,
+  onChange,
+  show,
+  onToggleShow,
+  editing,
+  onEdit,
+}: {
+  id: string
+  label: string
+  placeholder: string
+  saved: boolean
+  value: string
+  onChange: (v: string) => void
+  show: boolean
+  onToggleShow: () => void
+  editing: boolean
+  onEdit: () => void
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label htmlFor={id}>
+          {label}
+          {saved && <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>}
+        </Label>
+        {saved && !editing && (
+          <button type="button" onClick={onEdit} className="text-xs text-ireland-green underline underline-offset-2">
+            変更する
+          </button>
+        )}
+      </div>
+      <div className="relative">
+        <Input
+          id={id}
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          readOnly={saved && !editing}
+          placeholder={placeholder}
+          className={`pr-10 font-mono text-sm ${saved && !editing ? "bg-muted cursor-default select-none" : ""}`}
+        />
+        <button
+          type="button"
+          onClick={onToggleShow}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        >
+          {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export default function SiteSettingsForm({ initial }: Props) {
@@ -22,9 +82,12 @@ export default function SiteSettingsForm({ initial }: Props) {
   const [subtitle, setSubtitle] = useState(initial.site_subtitle ?? "")
   const [logoUrl, setLogoUrl] = useState(initial.logo_url ?? "")
 
-  // Stripe — 設定済みなら masked 値を初期表示
-  const MASKED = "••••••••••••••••"
+  // Stripe モード
+  const [stripeMode, setStripeMode] = useState<"test" | "live">(
+    (initial.stripe_mode as "test" | "live") ?? "live"
+  )
 
+  // Stripe 本番キー
   const stripeKeySaved = !!initial.stripe_secret_key
   const [stripeKey, setStripeKey] = useState(stripeKeySaved ? MASKED : "")
   const [showStripeKey, setShowStripeKey] = useState(false)
@@ -37,6 +100,20 @@ export default function SiteSettingsForm({ initial }: Props) {
   const [stripeWebhook, setStripeWebhook] = useState(stripeWebhookSaved ? MASKED : "")
   const [showStripeWebhook, setShowStripeWebhook] = useState(false)
   const [stripeWebhookEditing, setStripeWebhookEditing] = useState(false)
+
+  // Stripe テストキー
+  const stripeTestKeySaved = !!initial.stripe_test_secret_key
+  const [stripeTestKey, setStripeTestKey] = useState(stripeTestKeySaved ? MASKED : "")
+  const [showStripeTestKey, setShowStripeTestKey] = useState(false)
+  const [stripeTestKeyEditing, setStripeTestKeyEditing] = useState(false)
+
+  const stripeTestPubKeySaved = !!initial.stripe_test_publishable_key
+  const [stripeTestPubKey, setStripeTestPubKey] = useState(initial.stripe_test_publishable_key ?? "")
+
+  const stripeTestWebhookSaved = !!initial.stripe_test_webhook_secret
+  const [stripeTestWebhook, setStripeTestWebhook] = useState(stripeTestWebhookSaved ? MASKED : "")
+  const [showStripeTestWebhook, setShowStripeTestWebhook] = useState(false)
+  const [stripeTestWebhookEditing, setStripeTestWebhookEditing] = useState(false)
 
   // SMTP
   const smtpHostSaved = !!initial.smtp_host
@@ -57,15 +134,19 @@ export default function SiteSettingsForm({ initial }: Props) {
         site_title: title,
         site_subtitle: subtitle,
         logo_url: logoUrl,
+        stripe_mode: stripeMode,
         smtp_host: smtpHost,
         smtp_port: smtpPort,
         smtp_user: smtpUser,
         email_from: emailFrom,
         stripe_publishable_key: stripePubKey,
+        stripe_test_publishable_key: stripeTestPubKey,
       }
-      // masked 値・空欄の場合は上書きしない（既存値を保持）
+      // masked・空欄は上書きしない
       if (stripeKey && stripeKey !== MASKED) payload.stripe_secret_key = stripeKey
       if (stripeWebhook && stripeWebhook !== MASKED) payload.stripe_webhook_secret = stripeWebhook
+      if (stripeTestKey && stripeTestKey !== MASKED) payload.stripe_test_secret_key = stripeTestKey
+      if (stripeTestWebhook && stripeTestWebhook !== MASKED) payload.stripe_test_webhook_secret = stripeTestWebhook
       if (smtpPass && smtpPass !== MASKED) payload.smtp_pass = smtpPass
 
       await fetch("/api/admin/site-settings", {
@@ -74,9 +155,10 @@ export default function SiteSettingsForm({ initial }: Props) {
         body: JSON.stringify(payload),
       })
       setSaved(true)
-      // 保存後は masked 表示に戻す
       if (stripeKey && stripeKey !== MASKED) { setStripeKey(MASKED); setStripeKeyEditing(false) }
       if (stripeWebhook && stripeWebhook !== MASKED) { setStripeWebhook(MASKED); setStripeWebhookEditing(false) }
+      if (stripeTestKey && stripeTestKey !== MASKED) { setStripeTestKey(MASKED); setStripeTestKeyEditing(false) }
+      if (stripeTestWebhook && stripeTestWebhook !== MASKED) { setStripeTestWebhook(MASKED); setStripeTestWebhookEditing(false) }
       if (smtpPass && smtpPass !== MASKED) { setSmtpPass(MASKED); setSmtpPassEditing(false) }
       setTimeout(() => setSaved(false), 3000)
     })
@@ -134,116 +216,145 @@ export default function SiteSettingsForm({ initial }: Props) {
         </div>
       </div>
 
-      {/* Stripe */}
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+      {/* Stripe 決済設定 */}
+      <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
         <div className="flex items-center gap-2 mb-1">
           <CreditCard className="w-4 h-4 text-ireland-green" />
           <h2 className="font-bold text-foreground">Stripe 決済設定</h2>
         </div>
+
+        {/* モードトグル */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="stripe_secret_key">
-              Stripe シークレットキー
-              {stripeKeySaved && (
-                <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>
-              )}
-            </Label>
-            {stripeKeySaved && !stripeKeyEditing && (
-              <button
-                type="button"
-                onClick={() => { setStripeKey(""); setStripeKeyEditing(true) }}
-                className="text-xs text-ireland-green underline underline-offset-2"
-              >
-                変更する
-              </button>
-            )}
-          </div>
-          <div className="relative">
-            <Input
-              id="stripe_secret_key"
-              type={showStripeKey ? "text" : "password"}
-              value={stripeKey}
-              onChange={(e) => setStripeKey(e.target.value)}
-              readOnly={stripeKeySaved && !stripeKeyEditing}
-              placeholder="sk_live_xxxxxxxxxxxx"
-              className={`pr-10 font-mono text-sm ${stripeKeySaved && !stripeKeyEditing ? "bg-muted cursor-default select-none" : ""}`}
-            />
+          <Label>決済モード</Label>
+          <div className="flex rounded-xl border border-border overflow-hidden">
             <button
               type="button"
-              onClick={() => setShowStripeKey((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => setStripeMode("test")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                stripeMode === "test"
+                  ? "bg-amber-500 text-white"
+                  : "bg-card text-muted-foreground hover:bg-muted"
+              }`}
             >
-              {showStripeKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <FlaskConical className="w-4 h-4" />
+              テストモード
+            </button>
+            <button
+              type="button"
+              onClick={() => setStripeMode("live")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                stripeMode === "live"
+                  ? "bg-ireland-green text-white"
+                  : "bg-card text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <Zap className="w-4 h-4" />
+              本番モード
             </button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Stripe ダッシュボード → 開発者 → APIキー から取得できます。本番環境では <code className="font-mono bg-muted px-1 rounded">sk_live_</code> で始まるキーを使用してください。
+            {stripeMode === "test"
+              ? "テストモード中はテスト用カード番号（4242 4242 4242 4242）で決済できます。実際の課金は発生しません。"
+              : "本番モードで実際の決済が行われます。本番用キーが設定されていることを確認してください。"}
           </p>
+          {stripeMode === "test" && (
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-400">テストモード有効中</p>
+              <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">実際の課金は発生しません。テスト用キーを使用しています。</p>
+            </div>
+          )}
         </div>
 
-        {/* 公開キー */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="stripe_publishable_key">
-              Stripe 公開キー（Publishable Key）
-              {stripePubKeySaved && (
-                <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>
-              )}
-            </Label>
+        {/* テストキー */}
+        <div className="space-y-4 border-t border-border pt-4">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="w-3.5 h-3.5 text-amber-500" />
+            <h3 className="text-sm font-bold text-foreground">テスト用キー</h3>
+            <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full font-mono">sk_test_ / pk_test_</span>
           </div>
-          <Input
-            id="stripe_publishable_key"
-            type="text"
-            value={stripePubKey}
-            onChange={(e) => setStripePubKey(e.target.value)}
-            placeholder="pk_live_xxxxxxxxxxxx"
-            className="font-mono text-sm"
+          <SecretField
+            id="stripe_test_secret_key"
+            label="テスト シークレットキー"
+            placeholder="sk_test_xxxxxxxxxxxx"
+            saved={stripeTestKeySaved}
+            value={stripeTestKey}
+            onChange={setStripeTestKey}
+            show={showStripeTestKey}
+            onToggleShow={() => setShowStripeTestKey((v) => !v)}
+            editing={stripeTestKeyEditing}
+            onEdit={() => { setStripeTestKey(""); setStripeTestKeyEditing(true) }}
           />
-          <p className="text-xs text-muted-foreground">
-            本番環境では <code className="font-mono bg-muted px-1 rounded">pk_live_</code> で始まるキーを使用してください。
-          </p>
+          <div className="space-y-2">
+            <Label htmlFor="stripe_test_publishable_key">
+              テスト 公開キー
+              {stripeTestPubKeySaved && <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>}
+            </Label>
+            <Input
+              id="stripe_test_publishable_key"
+              value={stripeTestPubKey}
+              onChange={(e) => setStripeTestPubKey(e.target.value)}
+              placeholder="pk_test_xxxxxxxxxxxx"
+              className="font-mono text-sm"
+            />
+          </div>
+          <SecretField
+            id="stripe_test_webhook_secret"
+            label="テスト Webhook シークレット"
+            placeholder="whsec_xxxxxxxxxxxx（テスト用）"
+            saved={stripeTestWebhookSaved}
+            value={stripeTestWebhook}
+            onChange={setStripeTestWebhook}
+            show={showStripeTestWebhook}
+            onToggleShow={() => setShowStripeTestWebhook((v) => !v)}
+            editing={stripeTestWebhookEditing}
+            onEdit={() => { setStripeTestWebhook(""); setStripeTestWebhookEditing(true) }}
+          />
         </div>
 
-        {/* Webhook シークレット */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="stripe_webhook_secret">
-              Stripe Webhook シークレット
-              {stripeWebhookSaved && (
-                <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>
-              )}
+        {/* 本番キー */}
+        <div className="space-y-4 border-t border-border pt-4">
+          <div className="flex items-center gap-2">
+            <Zap className="w-3.5 h-3.5 text-ireland-green" />
+            <h3 className="text-sm font-bold text-foreground">本番用キー</h3>
+            <span className="text-xs bg-ireland-green/10 text-ireland-green px-2 py-0.5 rounded-full font-mono">sk_live_ / pk_live_</span>
+          </div>
+          <SecretField
+            id="stripe_secret_key"
+            label="本番 シークレットキー"
+            placeholder="sk_live_xxxxxxxxxxxx"
+            saved={stripeKeySaved}
+            value={stripeKey}
+            onChange={setStripeKey}
+            show={showStripeKey}
+            onToggleShow={() => setShowStripeKey((v) => !v)}
+            editing={stripeKeyEditing}
+            onEdit={() => { setStripeKey(""); setStripeKeyEditing(true) }}
+          />
+          <div className="space-y-2">
+            <Label htmlFor="stripe_publishable_key">
+              本番 公開キー
+              {stripePubKeySaved && <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>}
             </Label>
-            {stripeWebhookSaved && !stripeWebhookEditing && (
-              <button
-                type="button"
-                onClick={() => { setStripeWebhook(""); setStripeWebhookEditing(true) }}
-                className="text-xs text-ireland-green underline underline-offset-2"
-              >
-                変更する
-              </button>
-            )}
-          </div>
-          <div className="relative">
             <Input
-              id="stripe_webhook_secret"
-              type={showStripeWebhook ? "text" : "password"}
-              value={stripeWebhook}
-              onChange={(e) => setStripeWebhook(e.target.value)}
-              readOnly={stripeWebhookSaved && !stripeWebhookEditing}
-              placeholder="whsec_xxxxxxxxxxxx"
-              className={`pr-10 font-mono text-sm ${stripeWebhookSaved && !stripeWebhookEditing ? "bg-muted cursor-default select-none" : ""}`}
+              id="stripe_publishable_key"
+              value={stripePubKey}
+              onChange={(e) => setStripePubKey(e.target.value)}
+              placeholder="pk_live_xxxxxxxxxxxx"
+              className="font-mono text-sm"
             />
-            <button
-              type="button"
-              onClick={() => setShowStripeWebhook((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              {showStripeWebhook ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Stripe ダッシュボード → 開発者 → Webhook → エンドポイント → 署名シークレット から取得できます。
-          </p>
+          <SecretField
+            id="stripe_webhook_secret"
+            label="本番 Webhook シークレット"
+            placeholder="whsec_xxxxxxxxxxxx（本番用）"
+            saved={stripeWebhookSaved}
+            value={stripeWebhook}
+            onChange={setStripeWebhook}
+            show={showStripeWebhook}
+            onToggleShow={() => setShowStripeWebhook((v) => !v)}
+            editing={stripeWebhookEditing}
+            onEdit={() => { setStripeWebhook(""); setStripeWebhookEditing(true) }}
+          />
         </div>
       </div>
 
@@ -256,7 +367,6 @@ export default function SiteSettingsForm({ initial }: Props) {
         <p className="text-xs text-muted-foreground">
           返信先アドレス: <code className="font-mono bg-muted px-1 rounded">greenirelandfes@iris-corp.co.jp</code>
         </p>
-
         <div className="grid grid-cols-3 gap-4">
           <div className="col-span-2 space-y-2">
             <Label htmlFor="smtp_host">SMTPホスト</Label>
@@ -279,7 +389,6 @@ export default function SiteSettingsForm({ initial }: Props) {
             />
           </div>
         </div>
-
         <div className="space-y-2">
           <Label htmlFor="smtp_user">SMTPユーザー名</Label>
           <Input
@@ -290,21 +399,14 @@ export default function SiteSettingsForm({ initial }: Props) {
             className="font-mono text-sm"
           />
         </div>
-
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="smtp_pass">
               SMTPパスワード
-              {smtpPassSaved && (
-                <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>
-              )}
+              {smtpPassSaved && <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>}
             </Label>
             {smtpPassSaved && !smtpPassEditing && (
-              <button
-                type="button"
-                onClick={() => { setSmtpPass(""); setSmtpPassEditing(true) }}
-                className="text-xs text-ireland-green underline underline-offset-2"
-              >
+              <button type="button" onClick={() => { setSmtpPass(""); setSmtpPassEditing(true) }} className="text-xs text-ireland-green underline underline-offset-2">
                 変更する
               </button>
             )}
@@ -319,16 +421,11 @@ export default function SiteSettingsForm({ initial }: Props) {
               placeholder="SMTPパスワード"
               className={`pr-10 font-mono text-sm ${smtpPassSaved && !smtpPassEditing ? "bg-muted cursor-default select-none" : ""}`}
             />
-            <button
-              type="button"
-              onClick={() => setShowSmtpPass((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
+            <button type="button" onClick={() => setShowSmtpPass((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
               {showSmtpPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
         </div>
-
         <div className="space-y-2">
           <Label htmlFor="email_from">送信元メールアドレス</Label>
           <Input
