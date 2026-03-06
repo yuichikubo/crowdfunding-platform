@@ -1,11 +1,10 @@
 "use client"
 
 import Image from "next/image"
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState } from "react"
 import type { Campaign } from "@/lib/db"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
 import { useLanguage } from "@/components/LanguageProvider"
-import { useTranslateTexts } from "@/hooks/use-translate-text"
 import BlockRenderer from "@/components/campaign/BlockRenderer"
 import type { PageBlock } from "@/lib/block-types"
 
@@ -38,86 +37,37 @@ export default function CampaignDescription({ campaign, gallery, performers }: P
   const [lightbox, setLightbox] = useState<number | null>(null)
   const { t, locale, lang } = useLanguage()
 
-  // ─── ブロック翻訳管理 ───
-  const rawPageBlocks = (campaign as any).page_blocks
-  const jaBlocks: PageBlock[] = (() => {
-    if (!rawPageBlocks) return []
-    if (Array.isArray(rawPageBlocks)) return rawPageBlocks as PageBlock[]
-    if (typeof rawPageBlocks === "string") {
-      try { return JSON.parse(rawPageBlocks) as PageBlock[] } catch { return [] }
+  // ─── ブロック（言語別。DBに保存済みの翻訳を使用） ───
+  const parseBlocks = (raw: unknown): PageBlock[] => {
+    if (!raw) return []
+    if (Array.isArray(raw)) return raw as PageBlock[]
+    if (typeof raw === "string") {
+      try { return JSON.parse(raw) as PageBlock[] } catch { return [] }
     }
     return []
-  })()
+  }
 
-  const [displayBlocks, setDisplayBlocks] = useState<PageBlock[]>(jaBlocks)
-  const [isBlockTranslating, setIsBlockTranslating] = useState(false)
-  const translationCacheRef = useRef<Record<string, PageBlock[]>>({})
-  const currentRequestRef = useRef<string | null>(null)
-
-  const translateBlocks = useCallback(async (targetLang: string) => {
-    console.log(`[BlockTranslate] Start: lang=${targetLang}, jaBlocks=${jaBlocks.length}`)
-
-    if (targetLang === "ja") {
-      console.log("[BlockTranslate] Japanese - using original blocks")
-      setDisplayBlocks(jaBlocks)
-      return
-    }
-    if (translationCacheRef.current[targetLang]) {
-      console.log("[BlockTranslate] Cache hit")
-      setDisplayBlocks(translationCacheRef.current[targetLang])
-      return
-    }
-    if (jaBlocks.length === 0) {
-      console.log("[BlockTranslate] No blocks to translate")
-      return
-    }
-    if (currentRequestRef.current === targetLang) {
-      console.log("[BlockTranslate] Already in progress, skipping")
-      return
-    }
-    currentRequestRef.current = targetLang
-    setIsBlockTranslating(true)
-
-    console.log("[BlockTranslate] Fetching /api/translate-blocks...")
-
-    try {
-      const res = await fetch("/api/translate-blocks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ blocks: jaBlocks, targetLang }),
-      })
-
-      console.log(`[BlockTranslate] Response: status=${res.status}`)
-
-      const data = await res.json()
-      console.log("[BlockTranslate] Response data:", JSON.stringify(data).slice(0, 300))
-
-      if (currentRequestRef.current !== targetLang) {
-        console.log("[BlockTranslate] Language changed during request, discarding")
-        return
-      }
-      if (res.ok && data.translatedBlocks && !data.error) {
-        console.log(`[BlockTranslate] SUCCESS: ${data.translatedBlocks.length} blocks translated`)
-        translationCacheRef.current[targetLang] = data.translatedBlocks
-        setDisplayBlocks(data.translatedBlocks)
-      } else {
-        console.error("[BlockTranslate] FAILED:", data.error, data.detail)
-        setDisplayBlocks(jaBlocks)
-      }
-    } catch (err) {
-      console.error("[BlockTranslate] FETCH ERROR:", err)
-      setDisplayBlocks(jaBlocks)
-    } finally {
-      if (currentRequestRef.current === targetLang) currentRequestRef.current = null
-      setIsBlockTranslating(false)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    translateBlocks(lang)
-  }, [lang]) // eslint-disable-line react-hooks/exhaustive-deps
-
+  const c = campaign as any
+  const jaBlocks = parseBlocks(c.page_blocks)
+  const langBlocksMap: Record<string, PageBlock[]> = {
+    ja: jaBlocks,
+    en: parseBlocks(c.page_blocks_en),
+    ko: parseBlocks(c.page_blocks_ko),
+    zh: parseBlocks(c.page_blocks_zh),
+  }
+  // 該当言語のブロックがあればそれを表示、なければ日本語にフォールバック
+  const blocks = langBlocksMap[lang]?.length > 0 ? langBlocksMap[lang] : jaBlocks
   const hasBlocks = jaBlocks.length > 0
+
+  // イベント日時・会場・締切をi18nで静的表示（APIコール不要）
+  const eventDate = c.event_date || t("eventDateValue")
+  const eventVenue = c.event_venue || t("venueValue")
+  const deadlineLabel = campaign.end_date
+    ? new Date(campaign.end_date).toLocaleDateString(
+        lang === "ja" ? "ja-JP" : lang === "ko" ? "ko-KR" : lang === "zh" ? "zh-CN" : "en-US",
+        { year: "numeric", month: "long", day: "numeric" }
+      )
+    : t("tba")
 
   const localizePerformer = (p: Performer) => ({
     name: (lang !== "ja" && (p as any)[`name_${lang}`]) || p.name,
@@ -170,7 +120,7 @@ export default function CampaignDescription({ campaign, gallery, performers }: P
 
       {/* ─── ブロックコンテンツ（設定済みの場合）or デフォルト About ─── */}
       {hasBlocks ? (
-        <BlockRenderer blocks={displayBlocks} isTranslating={isBlockTranslating} />
+        <BlockRenderer blocks={blocks} />
       ) : (
         <div className="bg-card rounded-2xl border border-border overflow-hidden">
           <div className="px-6 py-4 border-b border-border">
@@ -306,9 +256,9 @@ export default function CampaignDescription({ campaign, gallery, performers }: P
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
           {[
-            { labelKey: "eventDate" as const, value: translatedEvent.eventDate },
-            { labelKey: "venue" as const,     value: translatedEvent.eventVenue },
-            { labelKey: "deadline" as const,  value: translatedEvent.deadline },
+            { labelKey: "eventDate" as const, value: eventDate },
+            { labelKey: "venue" as const,     value: eventVenue },
+            { labelKey: "deadline" as const,  value: deadlineLabel },
           ].map((item) => (
             <div key={item.labelKey} className="p-5 text-center">
               <p className="text-xs text-muted-foreground mb-1">{t(item.labelKey)}</p>
