@@ -72,9 +72,18 @@ export default function CampaignDescription({ campaign, gallery, performers }: P
           </div>
         </div>
         <div className="p-6 space-y-4 text-sm text-foreground/80 leading-relaxed">
-          <p>{t("aboutP1")}</p>
-          <p>{t("aboutP2")}</p>
-          <p>{t("aboutP3")}</p>
+          {campaign.description
+            ? campaign.description.split(/\n\n+/).map((para, i) => (
+                <p key={i}>{para}</p>
+              ))
+            : (
+              <>
+                <p>{t("aboutP1")}</p>
+                <p>{t("aboutP2")}</p>
+                <p>{t("aboutP3")}</p>
+              </>
+            )
+          }
         </div>
       </div>
 

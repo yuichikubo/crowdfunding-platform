@@ -153,7 +153,7 @@ export default function CampaignForm({ action, defaultValues }: Props) {
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">中文</p>
           <div>
             <Label htmlFor="title_zh" className="text-sm font-bold">标题</Label>
-            <Input id="title_zh" name="title_zh" value={fields.title_zh} onChange={set("title_zh")} placeholder="例: 绿色爱尔兰节 2026 众筹" className="mt-1.5" />
+            <Input id="title_zh" name="title_zh" value={fields.title_zh} onChange={set("title_zh")} placeholder="例: 绿色爱尔兰��� 2026 众筹" className="mt-1.5" />
           </div>
           <div>
             <Label htmlFor="short_description_zh" className="text-sm font-bold">简短说明</Label>
@@ -162,8 +162,21 @@ export default function CampaignForm({ action, defaultValues }: Props) {
         </div>
 
         <div>
-          <Label htmlFor="description" className="text-sm font-bold">詳細説明（日本語）</Label>
-          <Textarea id="description" name="description" rows={6} defaultValue={defaultValues?.description} placeholder="プロジェクトの詳細な説明文..." className="mt-1.5 resize-none" />
+          <Label htmlFor="description" className="text-sm font-bold">
+            詳細説明（日本語）
+            <span className="ml-2 text-xs font-normal text-ireland-green">← 公開ページの「About This Project」に反映されます</span>
+          </Label>
+          <Textarea
+            id="description"
+            name="description"
+            rows={8}
+            defaultValue={defaultValues?.description}
+            placeholder={"プロジェクトの詳細な説明文を入力してください。\n\n段落を分けるには空行を入れてください。\n\n例：このプロジェクトは..."}
+            className="mt-1.5 resize-y font-sans text-sm leading-relaxed"
+          />
+          <p className="text-xs text-muted-foreground mt-1.5">
+            空行で段落を区切ると、公開ページでも段落ごとに表示されます。未入力の場合はデフォルトの固定テキストが表示されます。
+          </p>
         </div>
         <ImageUploader
           name="hero_image_url"
