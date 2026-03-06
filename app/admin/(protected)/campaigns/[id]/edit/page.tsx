@@ -27,7 +27,14 @@ export default async function EditCampaignPage({ params }: { params: Promise<{ i
     const short_description_ko = formData.get("short_description_ko") as string
     const title_zh = formData.get("title_zh") as string
     const short_description_zh = formData.get("short_description_zh") as string
-    const page_blocks = formData.get("page_blocks") as string
+    const page_blocks_raw = formData.get("page_blocks") as string
+    // jsonb カラムには JSON.parse した値を渡す（Neon が自動でjsonbシリアライズ）
+    let page_blocks_json: unknown
+    try {
+      page_blocks_json = JSON.parse(page_blocks_raw || "[]")
+    } catch {
+      page_blocks_json = []
+    }
 
     await sql`
       UPDATE campaigns SET
@@ -47,7 +54,7 @@ export default async function EditCampaignPage({ params }: { params: Promise<{ i
         short_description_ko = ${short_description_ko || null},
         title_zh = ${title_zh || null},
         short_description_zh = ${short_description_zh || null},
-        page_blocks = ${page_blocks || "[]"},
+        page_blocks = ${JSON.stringify(page_blocks_json)}::jsonb,
         updated_at = NOW()
       WHERE id = ${campaign.id}
     `
