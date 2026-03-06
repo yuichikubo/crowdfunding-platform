@@ -31,14 +31,7 @@ export default function CampaignHeader({ logoUrl, siteTitle }: CampaignHeaderPro
               <Leaf className="w-4 h-4 text-ireland-dark" />
             </div>
           )}
-          <div>
-            <span className="font-bold text-lg tracking-tight leading-none block">{title}</span>
-            {process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA && (
-              <span className="text-white/30 text-[10px] font-mono leading-none">
-                {process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA.slice(0, 7)}
-              </span>
-            )}
-          </div>
+          <span className="font-bold text-lg tracking-tight">{title}</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-white/60 text-sm hidden sm:block">{t("crowdfunding")}</span>
