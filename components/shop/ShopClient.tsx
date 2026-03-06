@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ShoppingCart, ArrowLeft, Leaf } from "lucide-react"
 import { formatYen } from "@/lib/utils"
 import { useLanguage } from "@/components/LanguageProvider"
+import { useSiteSettings } from "@/components/SiteSettingsProvider"
 import LanguageSwitcher from "@/components/LanguageSwitcher"
 
 interface Product {
@@ -24,6 +25,8 @@ interface Props {
 
 export default function ShopClient({ products }: Props) {
   const { t, lang } = useLanguage()
+  const { logoUrl, siteTitle } = useSiteSettings()
+  const title = siteTitle || "Green Ireland Festival"
 
   const localize = (p: Product) => ({
     name: (lang !== "ja" && (p as any)[`name_${lang}`]) || p.name,
@@ -35,11 +38,15 @@ export default function ShopClient({ products }: Props) {
       <header className="sticky top-0 z-40 bg-ireland-dark border-b border-ireland-green/20">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-ireland-gold rounded-lg flex items-center justify-center">
-              <Leaf className="w-4 h-4 text-ireland-dark" />
-            </div>
+            {logoUrl ? (
+              <Image src={logoUrl} alt={title} width={32} height={32} className="rounded-lg object-cover" />
+            ) : (
+              <div className="w-8 h-8 bg-ireland-gold rounded-lg flex items-center justify-center shrink-0">
+                <Leaf className="w-4 h-4 text-ireland-dark" />
+              </div>
+            )}
             <div>
-              <p className="font-black text-white text-sm leading-none">Green Ireland Festival</p>
+              <p className="font-black text-white text-sm leading-none">{title}</p>
               <p className="text-ireland-gold text-xs">Official Shop</p>
             </div>
           </div>
