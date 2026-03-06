@@ -62,12 +62,18 @@ export default function CampaignDescription({ campaign, gallery, performers }: P
   // イベント日時・会場・締切をi18nで静的表示（APIコール不要）
   const eventDate = c.event_date || t("eventDateValue")
   const eventVenue = c.event_venue || t("venueValue")
-  const deadlineLabel = campaign.end_date
-    ? new Date(campaign.end_date).toLocaleDateString(
-        lang === "ja" ? "ja-JP" : lang === "ko" ? "ko-KR" : lang === "zh" ? "zh-CN" : "en-US",
-        { year: "numeric", month: "long", day: "numeric" }
-      )
-    : t("tba")
+  const deadlineLabel = (() => {
+    if (!campaign.end_date) return t("tba")
+    // UTC基準で年月日を取得（サーバー/クライアント間のタイムゾーン差によるハイドレーションミスマッチを防ぐ）
+    const d = new Date(campaign.end_date)
+    const y = d.getUTCFullYear()
+    const m = d.getUTCMonth() + 1
+    const day = d.getUTCDate()
+    if (lang === "en") return `${d.toLocaleString("en-US", { month: "long", timeZone: "UTC" })} ${day}, ${y}`
+    if (lang === "ko") return `${y}년 ${m}월 ${day}일`
+    if (lang === "zh") return `${y}年${m}月${day}日`
+    return `${y}年${m}月${day}日` // ja
+  })()
 
   const localizePerformer = (p: Performer) => ({
     name: (lang !== "ja" && (p as any)[`name_${lang}`]) || p.name,
