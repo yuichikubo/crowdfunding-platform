@@ -134,7 +134,7 @@ export default async function Page() {
             </div>
             {/* Right sidebar - rewards */}
             <div className="w-full lg:w-96 shrink-0">
-              <div className="sticky top-4">
+              <div id="rewards-section" className="sticky top-4">
                 <RewardTiers rewards={rewards} campaignId={campaign.id} />
               </div>
             </div>
@@ -147,6 +147,9 @@ export default async function Page() {
           <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
             <Link href="/legal/tokusho" className="hover:text-foreground transition-colors">
               特定商取引法に基づく表記
+            </Link>
+            <Link href="/legal/terms" className="hover:text-foreground transition-colors">
+              利用規約
             </Link>
             <Link href="/legal/privacy" className="hover:text-foreground transition-colors">
               プライバシーポリシー

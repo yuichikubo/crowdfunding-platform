@@ -5,7 +5,7 @@ import { Scale } from "lucide-react"
 export const metadata = { title: "法的ページ管理 - 管理画面" }
 
 export default async function LegalAdminPage() {
-  const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('legal_tokusho', 'legal_privacy', 'legal_system')`
+  const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('legal_tokusho', 'legal_privacy', 'legal_terms', 'legal_system')`
   const settings: Record<string, string> = {}
   for (const row of rows) settings[row.key] = row.value
 
@@ -19,11 +19,12 @@ export default async function LegalAdminPage() {
           <h1 className="text-2xl font-black text-foreground">法的ページ管理</h1>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          特定商取引法に基づく表記・プライバシーポリシー・システム提供情報の内容を編集できます。
+          特定商取引法に基づく表記・利用規約・プライバシーポリシー・システム提供情報の内容を編集できます。
         </p>
       </div>
       <LegalPagesEditor
         tokushoContent={settings.legal_tokusho ?? ""}
+        termsContent={settings.legal_terms ?? ""}
         privacyContent={settings.legal_privacy ?? ""}
         systemContent={settings.legal_system ?? ""}
       />
