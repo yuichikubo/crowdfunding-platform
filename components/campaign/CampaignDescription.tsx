@@ -59,11 +59,15 @@ export default function CampaignDescription({ campaign, gallery, performers }: P
   const prev = () => setLightbox((i) => (i === null ? null : (i - 1 + gallery.length) % gallery.length))
   const next = () => setLightbox((i) => (i === null ? null : (i + 1) % gallery.length))
 
+  // SSR/クライアント両方で同一値を出すため UTC基準の固定フォーマットを使う
+  // (toLocaleString はサーバー/ブラウザ環境で差異が出るため使わない)
   const deadlineLabel = campaign.end_date
-    ? new Date(campaign.end_date).toLocaleDateString(
-        locale === "ja" ? "ja-JP" : locale === "ko" ? "ko-KR" : "en-US",
-        { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Tokyo" }
-      )
+    ? (() => {
+        const ms = new Date(campaign.end_date).getTime()
+        // JST = UTC + 9h
+        const jst = new Date(ms + 9 * 60 * 60 * 1000)
+        return `${jst.getUTCFullYear()}年${jst.getUTCMonth() + 1}月${jst.getUTCDate()}日`
+      })()
     : t("tba")
 
   return (
