@@ -38,12 +38,18 @@ export default function SiteSettingsForm({ initial }: Props) {
   const [showStripeWebhook, setShowStripeWebhook] = useState(false)
   const [stripeWebhookEditing, setStripeWebhookEditing] = useState(false)
 
-  // Gmail
-  const gmailPassSaved = !!initial.gmail_app_password
-  const [gmailUser, setGmailUser] = useState(initial.gmail_user ?? "")
-  const [gmailPass, setGmailPass] = useState(gmailPassSaved ? MASKED : "")
-  const [showGmailPass, setShowGmailPass] = useState(false)
-  const [gmailPassEditing, setGmailPassEditing] = useState(false)
+  // SMTP
+  const smtpHostSaved = !!initial.smtp_host
+  const [smtpHost, setSmtpHost] = useState(initial.smtp_host ?? "")
+  const [smtpPort, setSmtpPort] = useState(initial.smtp_port ?? "587")
+  const [smtpUser, setSmtpUser] = useState(initial.smtp_user ?? "")
+
+  const smtpPassSaved = !!initial.smtp_pass
+  const [smtpPass, setSmtpPass] = useState(smtpPassSaved ? MASKED : "")
+  const [showSmtpPass, setShowSmtpPass] = useState(false)
+  const [smtpPassEditing, setSmtpPassEditing] = useState(false)
+
+  const [emailFrom, setEmailFrom] = useState(initial.email_from ?? "greenirelandfes@iris-corp.co.jp")
 
   const handleSave = () => {
     startTransition(async () => {
@@ -51,13 +57,16 @@ export default function SiteSettingsForm({ initial }: Props) {
         site_title: title,
         site_subtitle: subtitle,
         logo_url: logoUrl,
-        gmail_user: gmailUser,
+        smtp_host: smtpHost,
+        smtp_port: smtpPort,
+        smtp_user: smtpUser,
+        email_from: emailFrom,
         stripe_publishable_key: stripePubKey,
       }
       // masked 値・空欄の場合は上書きしない（既存値を保持）
       if (stripeKey && stripeKey !== MASKED) payload.stripe_secret_key = stripeKey
       if (stripeWebhook && stripeWebhook !== MASKED) payload.stripe_webhook_secret = stripeWebhook
-      if (gmailPass && gmailPass !== MASKED) payload.gmail_app_password = gmailPass
+      if (smtpPass && smtpPass !== MASKED) payload.smtp_pass = smtpPass
 
       await fetch("/api/admin/site-settings", {
         method: "POST",
@@ -68,7 +77,7 @@ export default function SiteSettingsForm({ initial }: Props) {
       // 保存後は masked 表示に戻す
       if (stripeKey && stripeKey !== MASKED) { setStripeKey(MASKED); setStripeKeyEditing(false) }
       if (stripeWebhook && stripeWebhook !== MASKED) { setStripeWebhook(MASKED); setStripeWebhookEditing(false) }
-      if (gmailPass && gmailPass !== MASKED) { setGmailPass(MASKED); setGmailPassEditing(false) }
+      if (smtpPass && smtpPass !== MASKED) { setSmtpPass(MASKED); setSmtpPassEditing(false) }
       setTimeout(() => setSaved(false), 3000)
     })
   }
@@ -238,39 +247,62 @@ export default function SiteSettingsForm({ initial }: Props) {
         </div>
       </div>
 
-      {/* Gmail */}
+      {/* SMTP メール送信設定 */}
       <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <Mail className="w-4 h-4 text-ireland-green" />
-          <h2 className="font-bold text-foreground">メール送信設定（Gmail）</h2>
+          <h2 className="font-bold text-foreground">メール送信設定（SMTP）</h2>
         </div>
         <p className="text-xs text-muted-foreground">
-          送信元・返信先アドレス: <code className="font-mono bg-muted px-1 rounded">greenirelandfes@iris-corp.co.jp</code>
+          返信先アドレス: <code className="font-mono bg-muted px-1 rounded">greenirelandfes@iris-corp.co.jp</code>
         </p>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-2 space-y-2">
+            <Label htmlFor="smtp_host">SMTPホスト</Label>
+            <Input
+              id="smtp_host"
+              value={smtpHost}
+              onChange={(e) => setSmtpHost(e.target.value)}
+              placeholder="smtp.example.com"
+              className="font-mono text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="smtp_port">ポート</Label>
+            <Input
+              id="smtp_port"
+              value={smtpPort}
+              onChange={(e) => setSmtpPort(e.target.value)}
+              placeholder="587"
+              className="font-mono text-sm"
+            />
+          </div>
+        </div>
+
         <div className="space-y-2">
-          <Label htmlFor="gmail_user">Gmail アカウント（GMAIL_USER）</Label>
+          <Label htmlFor="smtp_user">SMTPユーザー名</Label>
           <Input
-            id="gmail_user"
-            type="email"
-            value={gmailUser}
-            onChange={(e) => setGmailUser(e.target.value)}
-            placeholder="your-account@gmail.com"
+            id="smtp_user"
+            value={smtpUser}
+            onChange={(e) => setSmtpUser(e.target.value)}
+            placeholder="user@iris-corp.co.jp"
             className="font-mono text-sm"
           />
-          <p className="text-xs text-muted-foreground">送信に使用する Gmail アドレスを入力してください</p>
         </div>
+
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="gmail_app_password">
-              Gmail アプリパスワード
-              {gmailPassSaved && (
+            <Label htmlFor="smtp_pass">
+              SMTPパスワード
+              {smtpPassSaved && (
                 <span className="ml-2 text-xs text-ireland-green font-normal">設定済み</span>
               )}
             </Label>
-            {gmailPassSaved && !gmailPassEditing && (
+            {smtpPassSaved && !smtpPassEditing && (
               <button
                 type="button"
-                onClick={() => { setGmailPass(""); setGmailPassEditing(true) }}
+                onClick={() => { setSmtpPass(""); setSmtpPassEditing(true) }}
                 className="text-xs text-ireland-green underline underline-offset-2"
               >
                 変更する
@@ -279,24 +311,36 @@ export default function SiteSettingsForm({ initial }: Props) {
           </div>
           <div className="relative">
             <Input
-              id="gmail_app_password"
-              type={showGmailPass ? "text" : "password"}
-              value={gmailPass}
-              onChange={(e) => setGmailPass(e.target.value)}
-              readOnly={gmailPassSaved && !gmailPassEditing}
-              placeholder="xxxx xxxx xxxx xxxx"
-              className={`pr-10 font-mono text-sm ${gmailPassSaved && !gmailPassEditing ? "bg-muted cursor-default select-none" : ""}`}
+              id="smtp_pass"
+              type={showSmtpPass ? "text" : "password"}
+              value={smtpPass}
+              onChange={(e) => setSmtpPass(e.target.value)}
+              readOnly={smtpPassSaved && !smtpPassEditing}
+              placeholder="SMTPパスワード"
+              className={`pr-10 font-mono text-sm ${smtpPassSaved && !smtpPassEditing ? "bg-muted cursor-default select-none" : ""}`}
             />
             <button
               type="button"
-              onClick={() => setShowGmailPass((v) => !v)}
+              onClick={() => setShowSmtpPass((v) => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
-              {showGmailPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {showSmtpPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="email_from">送信元メールアドレス</Label>
+          <Input
+            id="email_from"
+            type="email"
+            value={emailFrom}
+            onChange={(e) => setEmailFrom(e.target.value)}
+            placeholder="greenirelandfes@iris-corp.co.jp"
+            className="font-mono text-sm"
+          />
           <p className="text-xs text-muted-foreground">
-            Google アカウント → セキュリティ → 2段階認証 → アプリパスワード から16桁のパスワードを取得してください
+            メールの From に表示されるアドレスです。SMTPサーバーで送信が許可されたアドレスを指定してください。
           </p>
         </div>
       </div>

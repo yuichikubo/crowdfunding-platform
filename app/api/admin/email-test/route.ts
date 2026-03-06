@@ -11,39 +11,47 @@ export async function POST(req: NextRequest) {
   const { to } = await req.json()
   if (!to) return NextResponse.json({ error: "to is required" }, { status: 400 })
 
-  // 1. Gmail 認証情報を取得（DB優先 → 環境変数フォールバック / lib/email.ts と同一順序）
-  let gmailUser: string | undefined
-  let gmailPass: string | undefined
+  // 1. SMTP 認証情報を取得（DB優先 → 環境変数フォールバック / lib/email.ts と同一順序）
+  let smtpHost: string | undefined
+  let smtpPort = 587
+  let smtpUser: string | undefined
+  let smtpPass: string | undefined
+  let emailFrom = "greenirelandfes@iris-corp.co.jp"
   let credSource = "none"
 
   try {
-    const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('gmail_user', 'gmail_app_password')`
+    const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'email_from')`
     const map: Record<string, string> = {}
     for (const row of rows) map[row.key] = row.value
-    if (map.gmail_user && map.gmail_app_password) {
-      gmailUser = map.gmail_user
-      gmailPass = map.gmail_app_password
+    if (map.smtp_host && map.smtp_user && map.smtp_pass) {
+      smtpHost = map.smtp_host
+      smtpPort = parseInt(map.smtp_port ?? "587", 10)
+      smtpUser = map.smtp_user
+      smtpPass = map.smtp_pass
+      emailFrom = map.email_from || emailFrom
       credSource = "db"
     }
   } catch { /* DB失敗時は環境変数にフォールバック */ }
 
-  if (!gmailUser || !gmailPass) {
-    const envUser = process.env.GMAIL_USER
-    const envPass = process.env.GMAIL_APP_PASSWORD
-    if (envUser && envPass) {
-      gmailUser = envUser
-      gmailPass = envPass
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      smtpHost = process.env.SMTP_HOST
+      smtpPort = parseInt(process.env.SMTP_PORT ?? "587", 10)
+      smtpUser = process.env.SMTP_USER
+      smtpPass = process.env.SMTP_PASS
+      emailFrom = process.env.EMAIL_FROM || emailFrom
       credSource = "env"
     }
   }
 
-  if (!gmailUser || !gmailPass) {
+  if (!smtpHost || !smtpUser || !smtpPass) {
     return NextResponse.json({
       success: false,
       step: "credentials",
-      error: "Gmail認証情報が見つかりません。共通設定でGMAIL_USERとGMAIL_APP_PASSWORDを設定してください。",
+      error: "SMTP認証情報が見つかりません。共通設定でSMTPホスト・ユーザー・パスワードを設定してください。",
       credSource,
-      gmailUser: gmailUser ?? null,
+      smtpHost: smtpHost ?? null,
+      smtpUser: smtpUser ?? null,
     })
   }
 
@@ -56,24 +64,28 @@ export async function POST(req: NextRequest) {
   // 3. テスト送信
   try {
     const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: gmailUser, pass: gmailPass },
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: { user: smtpUser, pass: smtpPass },
     })
 
     await transporter.verify()
 
     await transporter.sendMail({
-      from: `"Green Ireland Festival" <${gmailUser}>`,
+      from: `"Green Ireland Festival" <${emailFrom}>`,
       replyTo: "greenirelandfes@iris-corp.co.jp",
       to,
       subject: "【テスト送信】Green Ireland Festival メール配信テスト",
-      text: `このメールはテスト送信です。\n\nGmail認証情報: ${credSource}から取得\nGmailアカウント: ${gmailUser}\n\nメール配信設定は正常に機能しています。`,
+      text: `このメールはテスト送信です。\n\nSMTP認証情報: ${credSource}から取得\nSMTPホスト: ${smtpHost}\nSMTPユーザー: ${smtpUser}\n送信元: ${emailFrom}\n\nメール配信設定は正常に機能しています。`,
     })
 
     return NextResponse.json({
       success: true,
       credSource,
-      gmailUser,
+      smtpHost,
+      smtpUser,
+      emailFrom,
       templateStatus,
       message: `${to} へテスト送信しました`,
     })
@@ -84,7 +96,9 @@ export async function POST(req: NextRequest) {
       step: "send",
       error: message,
       credSource,
-      gmailUser,
+      smtpHost,
+      smtpUser,
+      emailFrom,
       templateStatus,
     })
   }
