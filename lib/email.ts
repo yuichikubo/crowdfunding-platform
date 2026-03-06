@@ -1,44 +1,68 @@
 import nodemailer from "nodemailer"
 import sql from "@/lib/db"
 
-const FROM_ADDRESS = "greenirelandfes@iris-corp.co.jp"
+const DEFAULT_FROM = "greenirelandfes@iris-corp.co.jp"
 const REPLY_TO_ADDRESS = "greenirelandfes@iris-corp.co.jp"
 
 function renderTemplate(body: string, vars: Record<string, string>): string {
   return body.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? "")
 }
 
-async function getGmailCredentials(): Promise<{ user: string; pass: string } | null> {
-  // DB優先 → 環境変数フォールバック（共通設定の値を確実に使う）
+interface SmtpCredentials {
+  host: string
+  port: number
+  user: string
+  pass: string
+  from: string
+}
+
+async function getSmtpCredentials(): Promise<SmtpCredentials | null> {
+  // DB優先 → 環境変数フォールバック
   try {
-    const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('gmail_user', 'gmail_app_password')`
+    const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'email_from')`
     const map: Record<string, string> = {}
     for (const row of rows) map[row.key] = row.value
-    if (map.gmail_user && map.gmail_app_password) {
-      return { user: map.gmail_user, pass: map.gmail_app_password }
+    if (map.smtp_host && map.smtp_user && map.smtp_pass) {
+      return {
+        host: map.smtp_host,
+        port: parseInt(map.smtp_port ?? "587", 10),
+        user: map.smtp_user,
+        pass: map.smtp_pass,
+        from: map.email_from || DEFAULT_FROM,
+      }
     }
   } catch {
     // DB失敗時は環境変数にフォールバック
   }
 
-  const envUser = process.env.GMAIL_USER
-  const envPass = process.env.GMAIL_APP_PASSWORD
-  if (envUser && envPass) return { user: envUser, pass: envPass }
+  const host = process.env.SMTP_HOST
+  const user = process.env.SMTP_USER
+  const pass = process.env.SMTP_PASS
+  if (host && user && pass) {
+    return {
+      host,
+      port: parseInt(process.env.SMTP_PORT ?? "587", 10),
+      user,
+      pass,
+      from: process.env.EMAIL_FROM || DEFAULT_FROM,
+    }
+  }
 
   return null
 }
 
 async function createTransporter() {
-  const creds = await getGmailCredentials()
+  const creds = await getSmtpCredentials()
   if (!creds) return null
 
   return {
     transporter: nodemailer.createTransport({
-      service: "gmail",
+      host: creds.host,
+      port: creds.port,
+      secure: creds.port === 465,
       auth: { user: creds.user, pass: creds.pass },
     }),
-    // From は必ず認証アカウントにする（Gmail が別アドレスを書き換えるのを防ぐ）
-    fromAddress: creds.user,
+    fromAddress: creds.from,
   }
 }
 
@@ -63,8 +87,8 @@ export async function sendTemplateEmail(
   const result = await createTransporter()
 
   if (!result) {
-    console.log(`[email] Gmail credentials not set — skipping send.`)
-    await logEmail(slug, to, renderedSubject, renderedBody, "failed", "Gmail認証情報が未設定です（GMAIL_USER / GMAIL_APP_PASSWORD）")
+    console.log(`[email] SMTP credentials not set — skipping send.`)
+    await logEmail(slug, to, renderedSubject, renderedBody, "failed", "SMTP認証情報が未設定です（共通設定または環境変数 SMTP_HOST / SMTP_USER / SMTP_PASS）")
     return
   }
 
@@ -72,7 +96,6 @@ export async function sendTemplateEmail(
 
   try {
     await transporter.sendMail({
-      // From は認証アカウント自身。Reply-To で問い合わせ先を案内
       from: `"Green Ireland Festival" <${fromAddress}>`,
       replyTo: REPLY_TO_ADDRESS,
       to,
@@ -119,7 +142,7 @@ export async function sendRawEmail({
   const result = await createTransporter()
 
   if (!result) {
-    console.log(`[email] Gmail credentials not set — skipping send.`)
+    console.log(`[email] SMTP credentials not set — skipping send.`)
     return
   }
 

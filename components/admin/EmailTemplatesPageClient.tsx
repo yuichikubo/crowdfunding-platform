@@ -17,7 +17,9 @@ interface TestResult {
   error?: string
   step?: string
   credSource?: string
-  gmailUser?: string
+  smtpHost?: string
+  smtpUser?: string
+  emailFrom?: string
   templateStatus?: { found: boolean; slug?: string; is_active?: boolean }
 }
 
@@ -104,8 +106,12 @@ function EmailTestPanel() {
             <div className="grid grid-cols-2 gap-1 text-xs">
               <span className="text-muted-foreground">認証情報の取得元</span>
               <span className="font-mono font-bold">{result.credSource === "db" ? "DB（共通設定）" : result.credSource === "env" ? "環境変数" : "未設定"}</span>
-              <span className="text-muted-foreground">Gmailアカウント</span>
-              <span className="font-mono">{result.gmailUser ?? "未設定"}</span>
+              <span className="text-muted-foreground">SMTPホスト</span>
+              <span className="font-mono">{result.smtpHost ?? "未設定"}</span>
+              <span className="text-muted-foreground">SMTPユーザー</span>
+              <span className="font-mono">{result.smtpUser ?? "未設定"}</span>
+              <span className="text-muted-foreground">送信元アドレス</span>
+              <span className="font-mono">{result.emailFrom ?? "未設定"}</span>
               {result.templateStatus && (
                 <>
                   <span className="text-muted-foreground">確認メールテンプレート</span>
@@ -128,9 +134,10 @@ function EmailTestPanel() {
         <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-5 space-y-2">
           <p className="text-xs font-bold text-amber-800 dark:text-amber-300">メール未送信の主な原因</p>
           <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1 list-disc pl-4">
-            <li>Gmailアカウントのアプリパスワードが未設定または誤り</li>
-            <li>Googleアカウントの「2段階認証」が有効になっていない</li>
-            <li>Gmailアカウントの「安全性の低いアプリのアクセス」の設定問題</li>
+            <li>SMTP認証情報（ホスト・ユーザー・パスワード）が未設定または誤り</li>
+            <li>SMTPサーバーが外部からの接続を許可していない</li>
+            <li>送信元アドレスがSMTPサーバーで許可されていない</li>
+            <li>ポート番号が正しくない（通常は 587 または 465）</li>
             <li>pledge_confirmation テンプレートが無効（is_active = false）</li>
             <li>Stripe Webhook が正しく設定されていない（Webhook未受信）</li>
           </ul>
