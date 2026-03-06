@@ -19,10 +19,13 @@ export async function POST(req: NextRequest) {
   let emailFrom = "greenirelandfes@iris-corp.co.jp"
   let credSource = "none"
 
+  let legacyGmailWarning: string | null = null
+
   try {
-    const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'email_from')`
+    const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'email_from', 'gmail_user', 'gmail_app_password')`
     const map: Record<string, string> = {}
     for (const row of rows) map[row.key] = row.value
+
     if (map.smtp_host && map.smtp_user && map.smtp_pass) {
       smtpHost = map.smtp_host
       smtpPort = parseInt(map.smtp_port ?? "587", 10)
@@ -30,6 +33,15 @@ export async function POST(req: NextRequest) {
       smtpPass = map.smtp_pass
       emailFrom = map.email_from || emailFrom
       credSource = "db"
+    } else if (map.gmail_user && map.gmail_app_password) {
+      // 旧 Gmail 設定が残っている場合は自動変換して使用
+      smtpHost = "smtp.gmail.com"
+      smtpPort = 587
+      smtpUser = map.gmail_user
+      smtpPass = map.gmail_app_password
+      emailFrom = map.gmail_user
+      credSource = "db(legacy gmail)"
+      legacyGmailWarning = "旧Gmail設定（gmail_user/gmail_app_password）を使用しています。共通設定でSMTP設定に移行してください。"
     }
   } catch { /* DB失敗時は環境変数にフォールバック */ }
 
@@ -87,6 +99,7 @@ export async function POST(req: NextRequest) {
       smtpUser,
       emailFrom,
       templateStatus,
+      legacyGmailWarning,
       message: `${to} へテスト送信しました`,
     })
   } catch (err: unknown) {

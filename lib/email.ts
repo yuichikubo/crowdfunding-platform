@@ -19,9 +19,10 @@ interface SmtpCredentials {
 async function getSmtpCredentials(): Promise<SmtpCredentials | null> {
   // DB優先 → 環境変数フォールバック
   try {
-    const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'email_from')`
+    const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'email_from', 'gmail_user', 'gmail_app_password')`
     const map: Record<string, string> = {}
     for (const row of rows) map[row.key] = row.value
+
     if (map.smtp_host && map.smtp_user && map.smtp_pass) {
       return {
         host: map.smtp_host,
@@ -29,6 +30,17 @@ async function getSmtpCredentials(): Promise<SmtpCredentials | null> {
         user: map.smtp_user,
         pass: map.smtp_pass,
         from: map.email_from || DEFAULT_FROM,
+      }
+    }
+
+    // 旧 Gmail 設定が残っている場合は自動変換して使用
+    if (map.gmail_user && map.gmail_app_password) {
+      return {
+        host: "smtp.gmail.com",
+        port: 587,
+        user: map.gmail_user,
+        pass: map.gmail_app_password,
+        from: map.gmail_user,
       }
     }
   } catch {
