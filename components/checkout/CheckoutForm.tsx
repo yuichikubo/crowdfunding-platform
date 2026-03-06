@@ -25,6 +25,8 @@ export default function CheckoutForm({ campaign, reward, rewardTitle, isCustom, 
   const { t } = useLanguage()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
+  const [mobile, setMobile] = useState("")
+  const [phone, setPhone] = useState("")
   const [message, setMessage] = useState("")
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [customAmount, setCustomAmount] = useState(defaultAmount ?? 1000)
@@ -36,6 +38,8 @@ export default function CheckoutForm({ campaign, reward, rewardTitle, isCustom, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email) { setError(t("emailAddress") + "を入力してください。"); return }
+    if (!mobile) { setError("携帯番号を入力してください。"); return }
+    if (!phone) { setError("電話番号を入力してください。"); return }
     if (isCustom && customAmount < 500) { setError("500円以上で入力してください。"); return }
 
     setLoading(true)
@@ -51,6 +55,8 @@ export default function CheckoutForm({ campaign, reward, rewardTitle, isCustom, 
           amount,
           supporter_name: isAnonymous ? null : name,
           supporter_email: email,
+          supporter_mobile: mobile,
+          supporter_phone: phone,
           message: message || null,
           is_anonymous: isAnonymous,
         }),
@@ -129,6 +135,36 @@ export default function CheckoutForm({ campaign, reward, rewardTitle, isCustom, 
           className="mt-1"
         />
         <p className="text-xs text-muted-foreground mt-1">{t("emailNote")}</p>
+      </div>
+
+      <div>
+        <Label htmlFor="mobile" className="text-sm font-medium">
+          携帯番号 <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="mobile"
+          type="tel"
+          required
+          value={mobile}
+          onChange={(e) => setMobile(e.target.value)}
+          placeholder="090-0000-0000"
+          className="mt-1"
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="phone" className="text-sm font-medium">
+          電話番号 <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="phone"
+          type="tel"
+          required
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="03-0000-0000"
+          className="mt-1"
+        />
       </div>
 
       <div>
