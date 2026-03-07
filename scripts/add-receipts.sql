@@ -21,9 +21,7 @@ CREATE TABLE IF NOT EXISTS receipt_templates (
 CREATE TABLE IF NOT EXISTS receipts (
   id SERIAL PRIMARY KEY,
   receipt_number TEXT UNIQUE NOT NULL,
-  pledge_id INTEGER REFERENCES pledges(id) ON DELETE SET NULL,
-  template_id INTEGER REFERENCES receipt_templates(id),
-  recipient_name TEXT NOT NULL,
+  supporter_name TEXT NOT NULL,
   amount INTEGER NOT NULL,
   proviso TEXT NOT NULL DEFAULT 'クラウドファンディング支援金として',
   issued_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -38,11 +36,11 @@ CREATE TABLE IF NOT EXISTS receipts (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_receipts_pledge ON receipts(pledge_id);
 CREATE INDEX IF NOT EXISTS idx_receipts_token ON receipts(download_token);
 CREATE INDEX IF NOT EXISTS idx_receipts_number ON receipts(receipt_number);
+CREATE INDEX IF NOT EXISTS idx_receipts_issued_date ON receipts(issued_date);
 
--- デフォルトテンプレートを挿入（既存チェック付き）
-INSERT INTO receipt_templates (name, issuer_name, default_proviso)
-SELECT 'デフォルト', '在日アイルランド商工会議所', 'クラウドファンディング支援金として'
+-- デフォルトテンプレートを挿入
+INSERT INTO receipt_templates (name, issuer_name, default_proviso, is_default)
+SELECT 'デフォルト', '在日アイルランド商工会議所', 'クラウドファンディング支援金として', TRUE
 WHERE NOT EXISTS (SELECT 1 FROM receipt_templates WHERE is_default = TRUE);
