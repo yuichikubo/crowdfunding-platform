@@ -123,8 +123,8 @@ export default function ShippingForm({ pledgeId, rewardTitle }: Props) {
         </div>
 
         <div>
-          <Label className="text-sm font-bold">{t("phone")}</Label>
-          <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder={t("phonePlaceholder")} className="mt-1 rounded-xl" />
+          <Label className="text-sm font-bold">{t("phone")} <span className="text-red-500">*</span></Label>
+          <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder={t("phonePlaceholder")} required className="mt-1 rounded-xl" />
         </div>
 
         {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}

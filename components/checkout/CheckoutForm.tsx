@@ -36,6 +36,7 @@ export default function CheckoutForm({ campaign, reward, rewardTitle, isCustom, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!name && !isAnonymous) { setError(t("nameRequired")); return }
     if (!email) { setError(t("emailRequired")); return }
     if (!contactPhone) { setError(t("contactPhoneRequired")); return }
     if (isCustom && customAmount < 500) { setError(t("minAmount")); return }
@@ -150,10 +151,13 @@ export default function CheckoutForm({ campaign, reward, rewardTitle, isCustom, 
       </div>
 
       <div>
-        <Label htmlFor="name" className="text-sm font-medium">{t("yourName")}</Label>
+        <Label htmlFor="name" className="text-sm font-medium">
+          {t("yourName")} <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="name"
           type="text"
+          required={!isAnonymous}
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={t("yourNamePlaceholder")}
