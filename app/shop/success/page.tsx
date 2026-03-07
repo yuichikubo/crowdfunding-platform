@@ -2,6 +2,7 @@ import { getStripe } from "@/lib/stripe"
 import sql from "@/lib/db"
 import { sendTemplateEmail } from "@/lib/email"
 import ShopSuccessPageClient from "@/components/checkout/ShopSuccessPageClient"
+import SuccessQrSection from "@/components/checkout/SuccessQrSection"
 
 async function confirmOrder(sessionId: string) {
   try {
@@ -92,5 +93,24 @@ export default async function ShopSuccessPage({
 
   const order = sessionId ? await confirmOrder(sessionId) : null
 
-  return <ShopSuccessPageClient order={order} />
+  // QRコード・リンク設定を取得
+  let qrSettings: Record<string, string> = {}
+  try {
+    const rows = await sql`SELECT key, value FROM site_settings WHERE key IN ('success_qr_url', 'success_qr_label', 'success_link_url', 'success_link_label')`
+    for (const r of rows) qrSettings[r.key] = r.value
+  } catch {}
+
+  return (
+    <>
+      <ShopSuccessPageClient order={order} />
+      <div className="max-w-md mx-auto px-4 pb-12">
+        <SuccessQrSection
+          qrUrl={qrSettings.success_qr_url}
+          qrLabel={qrSettings.success_qr_label}
+          linkUrl={qrSettings.success_link_url}
+          linkLabel={qrSettings.success_link_label}
+        />
+      </div>
+    </>
+  )
 }

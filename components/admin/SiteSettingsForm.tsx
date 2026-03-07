@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import ImageUploader from "@/components/admin/ImageUploader"
-import { Check, Save, CreditCard, Mail, Globe, Eye, EyeOff, FlaskConical, Zap } from "lucide-react"
+import { Check, Save, CreditCard, Mail, Globe, Eye, EyeOff, FlaskConical, Zap, QrCode } from "lucide-react"
 import Image from "next/image"
 
 interface Props {
@@ -128,6 +128,12 @@ export default function SiteSettingsForm({ initial }: Props) {
 
   const [emailFrom, setEmailFrom] = useState(initial.email_from ?? "greenirelandfes@iris-corp.co.jp")
 
+  // 完了画面QRコード・リンク
+  const [successQrUrl, setSuccessQrUrl] = useState(initial.success_qr_url ?? "")
+  const [successQrLabel, setSuccessQrLabel] = useState(initial.success_qr_label ?? "")
+  const [successLinkUrl, setSuccessLinkUrl] = useState(initial.success_link_url ?? "")
+  const [successLinkLabel, setSuccessLinkLabel] = useState(initial.success_link_label ?? "")
+
   const handleSave = () => {
     startTransition(async () => {
       const payload: Record<string, string> = {
@@ -141,6 +147,10 @@ export default function SiteSettingsForm({ initial }: Props) {
         email_from: emailFrom,
         stripe_publishable_key: stripePubKey,
         stripe_test_publishable_key: stripeTestPubKey,
+        success_qr_url: successQrUrl,
+        success_qr_label: successQrLabel,
+        success_link_url: successLinkUrl,
+        success_link_label: successLinkLabel,
       }
       // masked・空欄は上書きしない
       if (stripeKey && stripeKey !== MASKED) payload.stripe_secret_key = stripeKey
@@ -440,6 +450,76 @@ export default function SiteSettingsForm({ initial }: Props) {
             メールの From に表示されるアドレスです。SMTPサーバーで送信が許可されたアドレスを指定してください。
           </p>
         </div>
+      </div>
+
+      {/* 完了画面 QRコード・リンク */}
+      <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <div className="flex items-center gap-2 mb-1">
+          <QrCode className="w-4 h-4 text-ireland-green" />
+          <h2 className="font-bold text-foreground">完了画面 QRコード・リンク</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          支援完了・購入完了の画面に表示するQRコードとリンクを設定します。LINE公式アカウントやSNSへの誘導などにご利用ください。
+        </p>
+
+        <div className="space-y-2">
+          <Label htmlFor="success_qr_url">QRコード URL</Label>
+          <Input
+            id="success_qr_url"
+            value={successQrUrl}
+            onChange={(e) => setSuccessQrUrl(e.target.value)}
+            placeholder="https://line.me/R/ti/p/@example"
+            className="font-mono text-sm"
+          />
+          <p className="text-xs text-muted-foreground">このURLのQRコードが完了画面に表示されます。空欄の場合は非表示。</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="success_qr_label">QRコード ラベル</Label>
+          <Input
+            id="success_qr_label"
+            value={successQrLabel}
+            onChange={(e) => setSuccessQrLabel(e.target.value)}
+            placeholder="LINE公式アカウントを友だち追加"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="success_link_url">リンク URL</Label>
+          <Input
+            id="success_link_url"
+            value={successLinkUrl}
+            onChange={(e) => setSuccessLinkUrl(e.target.value)}
+            placeholder="https://example.com"
+            className="font-mono text-sm"
+          />
+          <p className="text-xs text-muted-foreground">完了画面にボタンリンクとして表示されます。空欄の場合は非表示。</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="success_link_label">リンク ラベル</Label>
+          <Input
+            id="success_link_label"
+            value={successLinkLabel}
+            onChange={(e) => setSuccessLinkLabel(e.target.value)}
+            placeholder="イベント詳細はこちら"
+          />
+        </div>
+
+        {/* プレビュー */}
+        {successQrUrl && (
+          <div className="bg-muted/50 rounded-xl p-4 text-center space-y-2">
+            <p className="text-xs font-bold text-muted-foreground">プレビュー</p>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(successQrUrl)}`}
+              alt="QR Preview"
+              className="mx-auto rounded-lg"
+              width={120}
+              height={120}
+            />
+            {successQrLabel && <p className="text-xs text-foreground font-bold">{successQrLabel}</p>}
+          </div>
+        )}
       </div>
 
       <Button
