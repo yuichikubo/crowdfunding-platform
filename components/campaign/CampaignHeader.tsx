@@ -19,10 +19,9 @@ export default function CampaignHeader() {
             <Image
               src={logoUrl}
               alt={title}
-              width={28}
-              height={28}
-              className="rounded-full object-cover shrink-0 sm:w-9 sm:h-9"
-              style={{ width: "auto", height: "auto" }}
+              width={36}
+              height={36}
+              className="rounded-full object-cover shrink-0 w-7 h-7 sm:w-9 sm:h-9"
               unoptimized
             />
           ) : (
