@@ -1,4 +1,3 @@
-import { put } from "@vercel/blob"
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminSession } from "@/lib/auth"
 
@@ -18,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"]
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: "JPEG、PNG、WebP、GIF のみアップロード可能です" }, { status: 400 })
+      return NextResponse.json({ error: `許可されていないファイル形式です: ${file.type || "不明"}` }, { status: 400 })
     }
 
     const maxSize = 5 * 1024 * 1024 // 5MB
@@ -26,14 +25,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "ファイルサイズは5MB以下にしてください" }, { status: 400 })
     }
 
-    const ext = file.name.split(".").pop()
+    const ext = file.name.split(".").pop() || "png"
     const filename = `green-ireland/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
-    const blob = await put(filename, file, { access: "public" })
+    // Try Vercel Blob first
+    try {
+      const { put } = await import("@vercel/blob")
+      const blob = await put(filename, file, { access: "public" })
+      return NextResponse.json({ url: blob.url })
+    } catch (blobError: any) {
+      console.error("Vercel Blob error:", blobError?.message || blobError)
 
-    return NextResponse.json({ url: blob.url })
-  } catch (error) {
-    console.error("Upload error:", error)
-    return NextResponse.json({ error: "アップロードに失敗しました" }, { status: 500 })
+      // Fallback: convert to data URL
+      const buffer = Buffer.from(await file.arrayBuffer())
+      const dataUrl = `data:${file.type};base64,${buffer.toString("base64")}`
+      return NextResponse.json({ url: dataUrl })
+    }
+  } catch (error: any) {
+    console.error("Upload error:", error?.message || error)
+    return NextResponse.json({ error: `アップロードに失敗しました: ${error?.message || "不明なエラー"}` }, { status: 500 })
   }
 }

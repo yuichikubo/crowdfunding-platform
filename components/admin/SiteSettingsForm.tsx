@@ -639,7 +639,7 @@ export default function SiteSettingsForm({ initial, receiptTemplate }: Props) {
       </div>
 
       {/* 領収書設定 */}
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
+      <div id="receipt-settings" className="bg-card border border-border rounded-2xl p-6 space-y-5 scroll-mt-6">
         <div className="flex items-center gap-2 mb-1">
           <Receipt className="w-4 h-4 text-ireland-green" />
           <h2 className="font-bold text-foreground">領収書設定</h2>
