@@ -51,9 +51,9 @@ export async function GET(
     .issuer { text-align: right; }
     .issuer .name { font-size: 18px; font-weight: bold; }
     .issuer .addr { font-size: 13px; color: #666; margin-top: 4px; }
-    .stamp { text-align: right; margin-top: 16px; }
-    .stamp img { width: 80px; height: 80px; opacity: 0.8; }
-    .reissue-stamp { position: absolute; top: -30px; right: 35%; transform: rotate(-18deg); color: #dc2626; border: 3px solid #dc2626; border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; letter-spacing: 3px; opacity: 0.85; pointer-events: none; }
+    .stamp-row { display: flex; justify-content: flex-end; align-items: center; gap: 0; margin-top: 16px; position: relative; }
+    .stamp-row img { width: 80px; height: 80px; opacity: 0.8; }
+    .reissue-stamp { width: 70px; height: 70px; border: 3px solid #dc2626; border-radius: 50%; color: #dc2626; font-size: 14px; font-weight: bold; letter-spacing: 2px; display: flex; align-items: center; justify-content: center; transform: rotate(-18deg); opacity: 0.85; margin-left: -10px; flex-shrink: 0; }
     .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #ddd; font-size: 11px; color: #999; text-align: center; }
     @media print { .print-btn { display: none; } body { padding: 20px; } }
   </style>
@@ -76,14 +76,16 @@ export async function GET(
     <tr><td>領収書番号</td><td>${r.receipt_number}</td></tr>
   </table></div>
   <div class="issuer-section">
-    ${r.reissued ? '<div class="reissue-stamp">再発行</div>' : ""}
     <div class="issuer">
       <div class="name">${r.issuer_name}</div>
       ${r.issuer_address ? `<div class="addr">${r.issuer_address}</div>` : ""}
       ${r.issuer_tel ? `<div class="addr">TEL: ${r.issuer_tel}</div>` : ""}
       ${r.issuer_email ? `<div class="addr">Email: ${r.issuer_email}</div>` : ""}
     </div>
-    ${r.stamp_url ? `<div class="stamp"><img src="${r.stamp_url}" alt="印影"></div>` : ""}
+    <div class="stamp-row">
+      ${r.stamp_url ? `<img src="${r.stamp_url}" alt="印影">` : ""}
+      ${r.reissued ? '<div class="reissue-stamp">再発行</div>' : ""}
+    </div>
   </div>
   ${r.footer_note ? `<div class="footer">${r.footer_note}</div>` : ""}
 </body>
