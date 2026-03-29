@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   if (!orig) return NextResponse.json({ error: "領収書が見つかりません" }, { status: 404 })
 
   // Get template for numbering
-  const templates = await sql`SELECT * FROM receipt_templates WHERE is_default = true LIMIT 1`
+  const templates = await sql`SELECT * FROM receipt_templates ORDER BY is_default DESC, id ASC LIMIT 1`
   const tpl = templates[0] as any
   if (!tpl) return NextResponse.json({ error: "テンプレートが未設定です" }, { status: 400 })
 

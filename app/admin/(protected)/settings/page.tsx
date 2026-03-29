@@ -17,7 +17,7 @@ export default async function SiteSettingsPage() {
   // Fetch default receipt template
   let receiptTemplate: any = null
   try {
-    const tplRows = await sql`SELECT * FROM receipt_templates WHERE is_default = true LIMIT 1`
+    const tplRows = await sql`SELECT * FROM receipt_templates ORDER BY is_default DESC, id ASC LIMIT 1`
     receiptTemplate = tplRows[0] || null
   } catch { /* table may not exist yet */ }
 
