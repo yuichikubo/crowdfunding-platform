@@ -1,22 +1,14 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib"
 import fontkit from "@pdf-lib/fontkit"
+import { readFileSync } from "fs"
+import { join } from "path"
 
-// NotoSansJP Regular font URL (Google Fonts CDN)
-const FONT_URL = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.woff"
+let cachedFont: Buffer | null = null
 
-let cachedFont: ArrayBuffer | null = null
-
-async function getJapaneseFont(): Promise<ArrayBuffer> {
+function getJapaneseFont(): Buffer {
   if (cachedFont) return cachedFont
-  try {
-    const res = await fetch(FONT_URL)
-    if (!res.ok) throw new Error(`Font fetch failed: ${res.status}`)
-    cachedFont = await res.arrayBuffer()
-    return cachedFont
-  } catch (err) {
-    console.error("[receipt-pdf] Failed to fetch Japanese font:", err)
-    throw err
-  }
+  cachedFont = readFileSync(join(process.cwd(), "public/fonts/NotoSansJP-Regular.woff"))
+  return cachedFont
 }
 
 export interface ReceiptPDFData {
@@ -42,11 +34,10 @@ export async function generateReceiptPDF(data: ReceiptPDFData): Promise<{
   let font: any
   let fontBold: any
   try {
-    const fontBytes = await getJapaneseFont()
+    const fontBytes = getJapaneseFont()
     font = await pdfDoc.embedFont(fontBytes)
-    fontBold = font // Same font, we'll use size for emphasis
+    fontBold = font
   } catch {
-    // Fallback to standard font (no Japanese support)
     font = await pdfDoc.embedFont(StandardFonts.Helvetica)
     fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
   }
