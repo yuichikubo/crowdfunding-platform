@@ -14,15 +14,14 @@ export async function PATCH(
 
   await sql`
     UPDATE receipts SET
-      supporter_name = ${body.supporter_name},
-      amount = ${body.amount},
-      proviso = ${body.proviso},
-      issued_date = ${body.issued_date},
-      issuer_name = ${body.issuer_name},
-      issuer_address = ${body.issuer_address || null},
-      notes = ${body.notes || null},
-      email_sent = ${body.email_sent ?? false},
-      email_sent_at = ${body.email_sent ? new Date().toISOString() : null},
+      supporter_name = COALESCE(${body.supporter_name ?? null}, supporter_name),
+      amount = COALESCE(${body.amount ?? null}, amount),
+      proviso = COALESCE(${body.proviso ?? null}, proviso),
+      issued_date = COALESCE(${body.issued_date ?? null}, issued_date),
+      issuer_name = COALESCE(${body.issuer_name ?? null}, issuer_name),
+      issuer_address = COALESCE(${body.issuer_address ?? null}, issuer_address),
+      notes = COALESCE(${body.notes ?? null}, notes),
+      email_sent = COALESCE(${body.email_sent ?? null}, email_sent),
       updated_at = NOW()
     WHERE id = ${Number(id)}
   `
