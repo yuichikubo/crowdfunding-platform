@@ -2,8 +2,12 @@ import sql from "@/lib/db"
 import ShopCheckoutPageClient from "@/components/checkout/ShopCheckoutPageClient"
 
 async function getProduct(id: number) {
-  const rows = await sql`SELECT * FROM products WHERE id = ${id} AND is_active = true LIMIT 1`
-  return rows[0] ?? null
+  try {
+    const rows = await sql`SELECT * FROM products WHERE id = ${id} AND is_active = true LIMIT 1`
+    return rows[0] ?? null
+  } catch {
+    return null
+  }
 }
 
 export default async function ShopCheckoutPage({

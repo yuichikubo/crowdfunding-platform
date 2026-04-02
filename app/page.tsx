@@ -53,40 +53,44 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 async function getCampaignData() {
-  const campaigns = await sql<Campaign[]>`
-    SELECT * FROM campaigns WHERE status = 'active' ORDER BY id LIMIT 1
-  `
-  const campaign = campaigns[0]
-  if (!campaign) return { campaign: null, rewards: [], supporters: [], gallery: [], performers: [] }
+  try {
+    const campaigns = await sql<Campaign[]>`
+      SELECT * FROM campaigns WHERE status = 'active' ORDER BY id LIMIT 1
+    `
+    const campaign = campaigns[0]
+    if (!campaign) return { campaign: null, rewards: [], supporters: [], gallery: [], performers: [] }
 
-  const rewards = await sql<RewardTier[]>`
-    SELECT * FROM reward_tiers
-    WHERE campaign_id = ${campaign.id} AND is_active = true
-    ORDER BY sort_order
-  `
-  const supporters = await sql`
-    SELECT supporter_name, amount, message, is_anonymous, created_at
-    FROM pledges
-    WHERE campaign_id = ${campaign.id}
-      AND payment_status = 'completed'
-      AND (
-        is_anonymous = false
-        OR (is_anonymous = true AND message IS NOT NULL AND message <> '')
-      )
-    ORDER BY created_at DESC
-    LIMIT 10
-  `
-  const gallery = await sql`
-    SELECT * FROM gallery_photos
-    WHERE campaign_id = ${campaign.id} AND is_active = true
-    ORDER BY sort_order
-  `
-  const performers = await sql`
-    SELECT * FROM performers
-    WHERE campaign_id = ${campaign.id} AND is_active = true
-    ORDER BY sort_order
-  `
-  return { campaign, rewards, supporters, gallery, performers }
+    const rewards = await sql<RewardTier[]>`
+      SELECT * FROM reward_tiers
+      WHERE campaign_id = ${campaign.id} AND is_active = true
+      ORDER BY sort_order
+    `
+    const supporters = await sql`
+      SELECT supporter_name, amount, message, is_anonymous, created_at
+      FROM pledges
+      WHERE campaign_id = ${campaign.id}
+        AND payment_status = 'completed'
+        AND (
+          is_anonymous = false
+          OR (is_anonymous = true AND message IS NOT NULL AND message <> '')
+        )
+      ORDER BY created_at DESC
+      LIMIT 10
+    `
+    const gallery = await sql`
+      SELECT * FROM gallery_photos
+      WHERE campaign_id = ${campaign.id} AND is_active = true
+      ORDER BY sort_order
+    `
+    const performers = await sql`
+      SELECT * FROM performers
+      WHERE campaign_id = ${campaign.id} AND is_active = true
+      ORDER BY sort_order
+    `
+    return { campaign, rewards, supporters, gallery, performers }
+  } catch {
+    return { campaign: null, rewards: [], supporters: [], gallery: [], performers: [] }
+  }
 }
 
 export default async function Page() {
