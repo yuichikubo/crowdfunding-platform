@@ -222,3 +222,40 @@ pnpm dev
 │   └── i18n.ts               # 多言語対応（ja/en/ko/zh）
 └── scripts/                  # SQLマイグレーションファイル
 ```
+
+---
+
+## トラブルシューティング
+
+### 管理画面にログインできない場合
+
+`/admin` にアクセスしてもログインできない場合、管理者アカウントのシード（初期データ投入）が完了していない可能性があります。
+
+#### 原因
+`scripts/seed-admin.mjs` の実行に `.env.local` ファイルが必要ですが、ファイルが存在しないか `DATABASE_URL` が設定されていません。
+
+#### 解決手順
+
+1. **Neonコンソールで接続文字列を取得**
+   - https://console.neon.tech にアクセス
+   - プロジェクトを選択 → 「Connection string」をコピー
+   - 形式：`postgresql://user:password@ep-xxxx.neon.tech/neondb?sslmode=require`
+
+2. **`.env.local` を作成**（プロジェクトルートで実行）
+   ```bash
+   cat > .env.local << 'EOF'
+   DATABASE_URL="ここにNeonの接続文字列を貼り付け"
+   EOF
+   ```
+
+3. **シードスクリプトを実行**
+   ```bash
+   node --env-file=.env.local scripts/seed-admin.mjs
+   ```
+
+4. **ログインを確認**
+   - URL: `/admin`
+   - メール: `admin@example.com`
+   - パスワード: `Admin1234!`
+
+> **注意：** シードスクリプトを再実行すると、管理画面で変更したパスワードが `Admin1234!` にリセットされます。パスワードを変更した後はスクリプトを再実行しないでください。
