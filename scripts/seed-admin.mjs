@@ -1,6 +1,23 @@
 import bcrypt from "bcryptjs"
 import { neon } from "@neondatabase/serverless"
 
+if (!process.env.DATABASE_URL) {
+  console.error(`
+エラー: DATABASE_URL が設定されていません。
+
+.env.local ファイルを作成してください:
+
+  cat > .env.local << 'EOF'
+  DATABASE_URL="postgresql://user:password@ep-xxxx.neon.tech/neondb?sslmode=require"
+  EOF
+
+その後、以下のコマンドで実行してください:
+
+  node --env-file=.env.local scripts/seed-admin.mjs
+`)
+  process.exit(1)
+}
+
 const sql = neon(process.env.DATABASE_URL)
 
 const email = process.env.ADMIN_EMAIL || "admin@example.com"
